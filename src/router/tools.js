@@ -6,7 +6,7 @@ const AsyncLoad = function (component)
         component: component,
         loading: loading,
         error: loading,
-        delay: 100,
+        delay: 200,
         timeout: 10000
     });
     return Promise.resolve({

@@ -1,7 +1,7 @@
 <template>
-    <div class="ikfb-starter-container">
+    <div class="fabulous-starter-container">
         <fv-button
-            v-show="step > 2"
+            v-show="step > 1"
             theme="dark"
             background="rgba(29, 85, 125, 1)"
             :border-radius="50"
@@ -10,6 +10,7 @@
             @click="step > 0 ? step-- : step"
         ><i class="ms-Icon ms-Icon--ChevronLeftMed"></i></fv-button>
         <fv-button
+            v-show="step > 2"
             theme="dark"
             background="rgba(29, 85, 125, 1)"
             :border-radius="50"
@@ -23,10 +24,10 @@
                 class="item-block"
             >
                 <fv-img
-                    :src="logo"
+                    :src="img.logo"
                     style="width: 80px; height: auto;"
                 ></fv-img>
-                <p class="logo-title">{{local('IKFB')}} PWA</p>
+                <p class="logo-title">Fab</p>
                 <fv-button
                     theme="dark"
                     background="rgba(0, 130, 180, 1)"
@@ -40,6 +41,10 @@
                 v-show="step === 1"
                 class="item-block"
             >
+                <fv-img
+                    :src="img.language"
+                    style="width: 120px; height: auto;"
+                ></fv-img>
                 <p class="title">{{local(`Choose Language`)}}</p>
                 <fv-Combobox
                     v-model="cur_language"
@@ -63,72 +68,117 @@
                 v-show="step === 2"
                 class="item-block"
             >
-                <p class="title">{{local(`New Data Dource`)}}</p>
-                <fv-Breadcrumb
-                    v-model="path"
+                <p class="title">{{local(`How you going to use Fabulous?`)}}</p>
+                <fv-img
+                    class="active-mode-img"
+                    :src="img[cur_active_system_mode.key]"
+                    style="width: 200px; height: auto;"
+                ></fv-img>
+                <fv-Combobox
+                    v-model="cur_active_system_mode"
                     theme="dark"
-                    :readOnly="false"
-                    style="width: 100%; max-width: 768px; height: 30px; margin-top: 15px;"
-                    @keyup.native.enter="chooseSource"
+                    :options="active_system_modes"
+                    :placeholder="local('Choose A Mode')"
+                    background="rgba(36, 36, 36, 1)"
+                    style="margin-top: 35px;"
+                    @choose-item="chooseSystemMode"
+                ></fv-Combobox>
+                <fv-button
+                    theme="dark"
+                    background="rgba(0, 130, 180, 1)"
+                    class="starter-btn"
+                    style="margin-top: 25px;"
+                    @click="() => {
+                        if(activeSystemMode === 'notebook') close();
+                        else step++;
+                    }"
+                >{{local('Confirm')}}</fv-button>
+            </div>
+        </transition>
+        <transition name="scale-up-to-up">
+            <div
+                v-show="step === 3"
+                class="item-block"
+            >
+                <fv-img
+                    :src="img.dataSource"
+                    style="width: 120px; height: auto;"
+                ></fv-img>
+                <p class="title">{{local(`New Data Source`)}}</p>
+                <p
+                    class="info"
+                    style="max-width: 600px; margin-bottom: 35px; text-align: center;"
+                >{{local('The data source is a directory for storing literature data. Please choose a suitable location to store it. No management is required after creation.')}}</p>
+                <fv-text-box
+                    v-model="name"
+                    :placeholder="local('Input Data Source Name')"
+                    background="rgba(255, 255, 255, 0.6)"
+                    :reveal-border="true"
+                    @keyup.enter="addSource"
+                ></fv-text-box>
+                <fv-button
+                    theme="dark"
+                    icon="FolderOpen"
+                    background="rgba(0, 130, 180, 0.6)"
+                    :is-box-shadow="true"
+                    style="width: 300px; height: 30px; margin-top: 15px; margin-bottom: 15px;"
+                    :title="path"
+                    @click="choosePath"
                 >
-                </fv-Breadcrumb>
-                <div
-                    v-show="lock.loading"
-                    class="tree-view-window"
+                    <p style="max-width: 80%; white-space: nowrap; text-overflow: ellipsis; overflow: hidden;">{{path ? path : local('Choose Data Source Directory ...')}}</p>
+                </fv-button>
+                <p
+                    v-show="name && path"
+                    class="info"
+                >{{local(`Will create on`)}} [{{path}}] {{local('create with new data source')}} [{{name}}]</p>
+                <fv-button
+                    theme="dark"
+                    background="rgba(0, 130, 180, 1)"
+                    :disabled="path === '' || name === ''"
+                    class="starter-btn"
+                    @click="addSource"
+                >{{local('Confirm')}}</fv-button>
+                <p class="info">{{local('Or')}}</p>
+                <fv-button
+                    theme="dark"
+                    icon="Attach"
+                    background="rgba(255, 180, 0, 0.8)"
+                    class="starter-btn"
+                    @click="() => {path = ''; step++;}"
+                >{{local('Exists Data Source')}} ?</fv-button>
+            </div>
+        </transition>
+        <transition name="scale-up-to-up">
+            <div
+                v-show="step === 4"
+                class="item-block"
+            >
+                <fv-img
+                    :src="img.link"
+                    style="width: 120px; height: auto;"
+                ></fv-img>
+                <p class="title">{{local(`Choose from Exists`)}}</p>
+                <p
+                    class="info"
+                    style="margin-bottom: 25px;"
+                >{{local('Please select the data source directory containing data_sturcture.json and root folder.')}}</p>
+                <fv-button
+                    theme="dark"
+                    icon="FolderOpen"
+                    background="rgba(0, 130, 180, 0.6)"
+                    :is-box-shadow="true"
+                    style="width: 300px; height: 35px; margin-top: 15px; margin-bottom: 15px;"
+                    :title="path"
+                    @click="choosePath"
                 >
-                    <fv-TreeView
-                        v-model="treeList"
-                        theme="dark"
-                        expandedIconPosition="right"
-                        :background="'rgba(58, 118, 146, 1)'"
-                        :view-style="{backgroundColor: 'rgba(58, 118, 146, 1)', backgroundColorHover: 'rgba(58, 118, 146, 1)'}"
-                        style="width: 100%; height: 100%; overflow: auto;"
-                        @click="expandItem"
-                    >
-                        <template v-slot:default="x">
-                            <div class="tree-view-custom-item">
-                                <img
-                                    v-if="!x.item.loading"
-                                    draggable="false"
-                                    class="icon-img"
-                                    :src="x.item.icon"
-                                    alt=""
-                                >
-                                <fv-progress-ring
-                                    v-else
-                                    loading="true"
-                                    r="10"
-                                    borderWidth="2"
-                                    background="rgba(200, 200, 200, 0.1)"
-                                    style="display: flex; align-item: center;"
-                                ></fv-progress-ring>
-                                <p class="tree-view-custom-label">{{x.item.name}}</p>
-                            </div>
-                        </template>
-                    </fv-TreeView>
-                </div>
-                <div
-                    v-show="!lock.loading"
-                    class="loading-block"
-                >
-                    <fv-img
-                        draggable="false"
-                        :src="img.OneDrive"
-                        style="width: 90px; height: auto; margin: 15px;"
-                    ></fv-img>
-                    <fv-progress-ring
-                        loading="true"
-                        r="15"
-                        borderWidth="3"
-                        background="rgba(200, 200, 200, 0.1)"
-                    ></fv-progress-ring>
-                </div>
+                    <p style="max-width: 80%; white-space: nowrap; text-overflow: ellipsis; overflow: hidden;">{{path ? path : local('Choose Data Source Path ...')}}</p>
+                </fv-button>
                 <fv-button
                     theme="dark"
                     background="rgba(0, 130, 180, 1)"
                     :disabled="path === ''"
                     class="starter-btn"
-                    @click="chooseSource"
+                    @click="chooseSource()"
                 >{{local('Confirm')}}</fv-button>
             </div>
         </transition>
@@ -136,146 +186,181 @@
 </template>
 
 <script>
-import logo from "../../assets/logo.svg";
-import { mapMutations, mapState, mapGetters } from "vuex";
+import logo from '../../assets/logo.png';
+import languageImg from '@/assets/nav/language.svg';
+import dataSourceImg from '@/assets/nav/dataSource.svg';
+import linkImg from '@/assets/nav/link.svg';
+import refManagementImg from '@/assets/nav/refManagement.svg';
+import notebookImg from '@/assets/nav/notebook.svg';
+import allImg from '@/assets/nav/all.svg';
 
-import OneDrive from "@/assets/settings/OneDrive.svg";
-import folder from "@/assets/settings/folder.svg";
-import file from "@/assets/settings/file.svg";
+import { mapActions, mapState, mapGetters } from 'vuex';
 
 export default {
     data() {
         return {
-            logo: logo,
+            img: {
+                logo: logo,
+                language: languageImg,
+                dataSource: dataSourceImg,
+                link: linkImg,
+                ds: refManagementImg,
+                notebook: notebookImg,
+                both: allImg
+            },
             step: 0,
-            treeList: [],
             cur_language: {},
             languages: [
-                { key: "en", text: "English" },
-                { key: "cn", text: "简体中文" },
+                { key: 'en', text: 'English' },
+                { key: 'cn', text: '简体中文' }
             ],
-            path: "",
-            img: {
-                OneDrive,
-                folder,
-                file,
-            },
-            lock: {
-                loading: true,
-            },
+            cur_active_system_mode: {},
+            active_system_modes: [
+                {
+                    key: 'ds',
+                    text: () => this.local('Reference Management System')
+                },
+                { key: 'notebook', text: () => this.local('Notebook System') },
+                { key: 'both', text: () => this.local('Both Systems') }
+            ],
+            path: '',
+            name: ''
         };
     },
     watch: {
-        step(val) {
-            if (val === 2) this.getRootInfo();
+        language() {
+            this.thisConfigSync();
         },
+        activeSystemMode() {
+            this.thisConfigSync();
+        }
     },
     computed: {
         ...mapState({
-            onedrive: (state) => state.onedrive,
-            data_path: (state) => state.data_path,
-            data_index: (state) => state.data_index,
-            dbList: (state) => state.dbList,
-            language: (state) => state.language,
-            theme: (state) => state.theme,
+            data_path: (state) => state.config.data_path,
+            data_index: (state) => state.config.data_index,
+            language: (state) => state.config.language,
+            activeSystemMode: (state) => state.config.activeSystemMode,
+            theme: (state) => state.config.theme
         }),
-        ...mapGetters(["local", "cur_db"]),
-        SourceIndexDisabled() {
-            return (index) => {
-                if (!this.dbList[index]) return true;
-                let id = this.dbList[index].get("id").write();
-                return id === null;
-            };
-        },
+        ...mapGetters(['local', 'currentDataPath'])
     },
     mounted() {
-        this.languageInit();
+        this.configInit();
     },
     methods: {
-        ...mapMutations({
-            reviseConfig: "reviseConfig",
-            reviseData: "reviseData",
-            reviseDS: "reviseDS",
+        ...mapActions('config', {
+            getConfig: 'getConfig',
+            reviseConfig: 'reviseConfig'
         }),
-        languageInit() {
+        async configInit() {
+            await this.getConfig();
+            this.thisConfigSync();
+        },
+        thisConfigSync() {
             this.cur_language = this.languages.find(
                 (item) => item.key === this.language
+            );
+            this.cur_active_system_mode = this.active_system_modes.find(
+                (item) => item.key === this.activeSystemMode
             );
         },
         chooseLanguage(item) {
             this.reviseConfig({
-                v: this,
-                language: item.key,
+                language: item.key
             });
         },
-        async chooseSource() {
-            if (this.path === "") return;
-            this.data_path.push(this.path);
-            await this.reviseConfig({
-                v: this,
-                data_path: this.data_path,
+        chooseSystemMode(item) {
+            this.reviseConfig({
+                activeSystemMode: item.key
             });
-            this.close();
         },
-        async getRootInfo() {
-            if (!this.lock.loading) return;
-            this.lock.loading = false;
-            let res = await this.onedrive.getMyDriveRootChildren();
-            if (res.value) {
-                let treeList = this.onedriveChildrenFormat(res.value);
-                this.treeList = treeList;
-            }
-            this.lock.loading = true;
+        async choosePath() {
+            await this.$local_api.ConfigController.selectLocalDataSourcePath().then(
+                (res) => {
+                    if (res.status === 'success') {
+                        this.path = res.data;
+                    }
+                }
+            );
         },
-        onedriveChildrenFormat(arr, parent = null) {
-            let treeList = arr;
-            treeList.forEach((el, idx) => {
-                if (el.folder) {
-                    treeList[idx].icon = this.img.folder;
-                    treeList[idx].children = [];
-                } else treeList[idx].icon = this.img.file;
-                treeList[idx].loading = false;
-                treeList[idx].finished = false;
-                treeList[idx].depth = parent ? parent.depth + 1 : 1;
-                treeList[idx].parent = parent;
-                treeList[idx].path = parent
-                    ? parent.path + "/" + treeList[idx].name
-                    : treeList[idx].name;
-            });
-            return treeList;
+        async existsSource(url, name) {
+            let res = null;
+            res = await this.$local_api.ConfigController.existsDataSource(
+                url,
+                name
+            );
+            return res.data;
         },
-        async expandItem(item) {
-            this.path = item.path;
-            if (!item.folder) return;
-            if (item.finished) return;
-            item.loading = true;
-            let children = await this.onedrive.getMyDriveItemChildren(item.id);
-            if (children.value) {
-                item.children = this.onedriveChildrenFormat(
-                    children.value,
-                    item
+        async addSource() {
+            if (this.path === '') return;
+            if (this.name === '') return;
+            if (await this.existsSource(this.path, this.name)) {
+                this.$infoBox(
+                    this.local(`An existing data source is detected.`),
+                    {
+                        status: 'warning',
+                        title: this.local('Data Source Exists'),
+                        confirmTitle: this.local('Link to It'),
+                        cancelTitle: this.local('Continue to Cover'),
+                        theme: 'dark',
+                        confirm: () => {
+                            this.chooseSource(this.name);
+                        },
+                        cancel: () => {
+                            this.addSourceConfirm(this.path, this.name);
+                        }
+                    }
                 );
+            } else this.addSourceConfirm(this.path, this.name);
+        },
+        async addSourceConfirm(path, name) {
+            let res = await this.$local_api.ConfigController.createDataSource(
+                path,
+                name
+            );
+            if (res.status !== 'success') {
+                this.$barWarning(res.message, {
+                    status: 'warning'
+                });
+            } else {
+                await this.configInit();
+                let index = this.data_path.indexOf(res.data);
+                this.reviseConfig({
+                    data_index: index
+                });
+                this.close();
             }
-            item.finished = true;
-            item.loading = false;
-            // let grandParent = item;
-            // while(grandParent.depth != 1) {
-            //     grandParent = grandParent.parent;
-            // }
-            // this.$set(this.treeList, this.treeList.indexOf(grandParent), grandParent);
+        },
+        async chooseSource(name = null) {
+            if (this.path === '') return;
+            let path = name
+                ? this.path.replace(/\\/g, '/') + '/' + name
+                : this.path;
+            let res =
+                await this.$local_api.ConfigController.linkLocalDataSource(
+                    path
+                );
+            if (res.status == 'success') {
+                await this.configInit();
+                let index = this.data_path.indexOf(path);
+                this.reviseConfig({
+                    data_index: index
+                });
+                this.close();
+            }
         },
         close() {
             this.reviseConfig({
-                v: this,
-                init_status: false,
+                init_status: false
             });
-        },
-    },
+        }
+    }
 };
 </script>
 
 <style lang="scss">
-.ikfb-starter-container {
+.fabulous-starter-container {
     @include HcenterVcenter;
 
     position: fixed;
@@ -311,80 +396,82 @@ export default {
         line-height: 2;
 
         .logo-title {
-            margin-bottom: 25px;
+            margin: 25px;
             font-size: 20px;
             color: whitesmoke;
         }
 
         .title {
-            margin-bottom: 25px;
+            margin-top: 25px;
+            margin-bottom: 5px;
             font-size: 20px;
             color: whitesmoke;
+        }
+
+        .info {
+            margin: 8px;
+            font-size: 12px;
+            color: rgba(239, 239, 239, 0.8);
         }
 
         .starter-btn {
             width: 150px;
             height: 40px;
-            margin: 15px 0px;
+            margin-bottom: 5px;
         }
     }
 
-    .tree-view-window {
-        position: relative;
-        flex: 1;
-        width: 100%;
-        max-width: 800px;
-        max-height: 300px;
-        margin-top: 35px;
-        overflow: auto;
-
-        .tree-view-custom-item {
-            position: relative;
-            width: 100%;
-            box-sizing: border-box;
-            display: flex;
-            align-items: center;
-
-            .icon-img {
-                width: 20px;
-                height: auto;
-            }
-
-            .tree-view-custom-label {
-                @include nowrap;
-
-                margin-left: 5px;
-            }
-
-            .tree-view-custom-text-box {
-                margin-left: 5px;
-            }
-
-            .tree-view-custom-confirm {
-                width: 30px;
-                height: 30px;
-                flex-shrink: 0;
-                margin-left: 5px;
-                margin-right: 25px;
-
-                i.ms-Icon {
-                    margin: 0px;
-                    padding: 0px;
-                    display: flex;
-                    align-items: center;
-                }
-            }
-        }
+    .active-mode-img {
+        animation: cute-mode 5s infinite ease-in-out;
     }
 
-    .loading-block {
-        @include HcenterVcenterC;
+    @keyframes cute-mode {
+        0% {
+            transform: scaleY(1);
+            transform-origin: 50% 100%;
+        }
 
-        position: relative;
-        width: 100%;
-        height: 100%;
-        flex: 1;
-        margin-top: 35px;
+        10% {
+            transform: scaleY(0.8);
+            transform-origin: 50% 100%;
+        }
+
+        20% {
+            transform: scaleY(0.9);
+            transform-origin: 50% 100%;
+        }
+
+        40% {
+            transform: scaleY(1.1);
+            transform-origin: 50% 100%;
+        }
+
+        60% {
+            transform: scaleY(0.8);
+            transform-origin: 50% 100%;
+        }
+
+        80% {
+            transform: scaleY(0.9);
+            transform-origin: 50% 100%;
+            transform: rotateY(0deg);
+        }
+
+        80% {
+            transform: scaleY(0.9);
+            transform-origin: 50% 100%;
+            transform: rotateX(30deg);
+        }
+
+        90% {
+            transform: rotateX(-30deg);
+            transform-origin: 50% 100%;
+        }
+
+        100% {
+            transform: scaleY(1);
+            transform-origin: 50% 100%;
+        }
     }
 }
 </style>

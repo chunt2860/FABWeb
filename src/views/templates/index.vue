@@ -1,159 +1,196 @@
 <template>
-    <div class="ikfb-templates-container" :class="[{ dark: theme === 'dark' }]">
+    <div
+        class="fabulous-templates-container"
+        :class="[{dark: theme === 'dark'}]"
+    >
         <div class="s-row">
-            <p class="s-title">{{ local('Templates') }}</p>
+            <p
+                class="s-title"
+                style="margin-top: 20px;"
+            >{{local('Templates')}}</p>
         </div>
         <div class="m-templates-block">
             <div class="row between">
-                <fv-text-box v-model="currentSearch" :placeholder="local('Filtering from current content')"
-                    :theme="theme" :background="theme === 'dark' ? 'rgba(75, 75, 75, 1)' : 'rgba(245, 245, 245, 1)'"
-                    icon="Filter" borderWidth="2" :revealBorder="true"
-                    style="box-shadow: 0px 3px 8px rgba(0, 0, 0, 0.1)"></fv-text-box>
+                <fv-text-box
+                    v-model="currentSearch"
+                    :placeholder="local('Filtering from current content')"
+                    :theme="theme"
+                    :background="theme === 'dark' ? 'rgba(75, 75, 75, 0.6)' : 'rgba(255, 255, 255, 0.6)'"
+                    icon="Filter"
+                    borderWidth="1"
+                    :border-radius="30"
+                    :revealBorder="true"
+                ></fv-text-box>
             </div>
             <div class="row command-bar">
-                <fv-command-bar :options="cmd" :theme="theme"
-                    :background="theme === 'dark' ? 'transparent' : 'rgba(245, 245, 245, 1)'" style="flex: 1">
-                </fv-command-bar>
+                <fv-command-bar
+                    :options="cmd"
+                    :theme="theme"
+                    :background="theme === 'dark' ? 'transparent' : 'rgba(245, 245, 245, 0)'"
+                    style="flex: 1; background: transparent;"
+                ></fv-command-bar>
             </div>
             <div class="row main-table">
-                <template-grid :value="templates" :filter="currentSearch" @rightclick="currentItem = $event"
-                    @choose-items="currentChoosen = $event" @item-click="openEditor($event)">
+                <template-grid
+                    :value="templates"
+                    :filter="currentSearch"
+                    :multiChoosen="true"
+                    @rightclick="currentItem = $event"
+                    @choose-items="currentChoosen = $event"
+                    @item-click="openEditor($event)"
+                >
                     <template v-slot:menu>
-                        <div>
+                        <div v-show="!currentItem.default">
                             <span @click="show.rename = true">
-                                <i class="ms-Icon ms-Icon--Rename" style="color: rgba(0, 153, 204, 1);"></i>
-                                <p>{{ local("Rename Template") }}</p>
+                                <i
+                                    class="ms-Icon ms-Icon--Rename"
+                                    style="color: rgba(0, 153, 204, 1);"
+                                ></i>
+                                <p>{{local("Rename Template")}}</p>
                             </span>
                             <span @click="deleteTemplate">
-                                <i class="ms-Icon ms-Icon--Delete" style="color: rgba(173, 38, 45, 1);"></i>
-                                <p>{{ local("Delete Template") }}</p>
+                                <i
+                                    class="ms-Icon ms-Icon--Delete"
+                                    style="color: rgba(173, 38, 45, 1);"
+                                ></i>
+                                <p>{{local("Delete Template")}}</p>
                             </span>
                         </div>
                     </template>
                 </template-grid>
             </div>
         </div>
-        <add-template :show.sync="show.add"></add-template>
-        <rename-template :value="currentItem" :show.sync="show.rename"></rename-template>
+        <add-template
+            :show.sync="show.add"
+            @finished="getTemplates"
+        ></add-template>
+        <rename-template
+            :value="currentItem"
+            :show.sync="show.rename"
+        ></rename-template>
+        <template-preview
+            :value="currentItem"
+            :show.sync="show.templatePreview"
+        ></template-preview>
     </div>
 </template>
 
 <script>
-import addTemplate from "@/components/templates/addTemplate.vue";
-import renameTemplate from "@/components/templates/renameTemplate.vue";
-import templateGrid from "@/components/templates/templateGrid.vue";
-import { ConflictBehavior } from "msgraphapi";
-import { mapMutations, mapState, mapGetters } from "vuex";
+import addTemplate from '@/components/templates/addTemplate.vue';
+import renameTemplate from '@/components/templates/renameTemplate.vue';
+import templateGrid from '@/components/templates/templateGrid.vue';
+import templatePreview from '@/components/templates/templatePreview.vue';
 
-// const path = require("path");
+import { mapMutations, mapState, mapGetters } from 'vuex';
 
 export default {
     components: {
         addTemplate,
         renameTemplate,
         templateGrid,
+        templatePreview
     },
     data() {
         return {
             cmd: [
                 {
-                    name: () => this.local("Add"),
-                    icon: "Add",
-                    iconColor: "rgba(0, 90, 158, 1)",
-                    disabled: () => this.cur_db === null || !this.lock,
+                    name: () => this.local('Add'),
+                    icon: 'Add',
+                    iconColor: 'rgba(0, 90, 158, 1)',
+                    disabled: () => this.SourceDisabled || !this.lock,
                     func: () => {
                         this.show.add = true;
-                    },
+                    }
                 },
                 {
-                    name: () => this.local("Delete"),
-                    icon: "Delete",
-                    iconColor: "rgba(173, 38, 45, 1)",
+                    name: () => this.local('Delete'),
+                    icon: 'Delete',
+                    iconColor: 'rgba(173, 38, 45, 1)',
                     disabled: () =>
                         this.currentChoosen.length === 0 || !this.lock,
-                    func: this.deleteTemplates,
-                },
+                    func: this.deleteTemplates
+                }
             ],
             head: [
-                { content: "No.", width: 120 },
-                { content: "Icon", sortName: "emoji", width: 80 },
-                { content: "Name", sortName: "name", width: 300 },
-                { content: "Create Date", sortName: "createDate", width: 120 },
+                { content: 'No.', width: 120 },
+                { content: 'Icon', sortName: 'emoji', width: 80 },
+                { content: 'Name', sortName: 'name', width: 300 },
+                { content: 'Create Date', sortName: 'createDate', width: 120 }
             ],
+            templates: [],
             currentItem: {},
             currentChoosen: [],
-            currentSearch: "",
+            currentSearch: '',
             show: {
                 add: false,
                 rename: false,
+                templatePreview: false
             },
-            lock: true,
+            lock: true
         };
     },
     watch: {
         $route() {
-            this.templatesEnsureFolder();
-        },
+            this.getTemplates();
+        }
     },
     computed: {
         ...mapState({
-            root: (state) => state.root,
-            data_path: (state) => state.data_path,
-            data_index: (state) => state.data_index,
-            templates: (state) => state.data_structure.templates,
-            theme: (state) => state.theme,
+            data_path: (state) => state.config.data_path,
+            data_index: (state) => state.config.data_index,
+            theme: (state) => state.config.theme
         }),
-        ...mapGetters(["local", "cur_db"]),
-        v() {
-            return this;
-        },
+        ...mapGetters(['local', 'currentDataPath']),
+        SourceDisabled() {
+            return !this.currentDataPath;
+        }
     },
     mounted() {
-        this.templatesEnsureFolder();
+        this.getTemplates();
     },
     methods: {
         ...mapMutations({
-            reviseDS: "reviseDS",
-            reviseEditor: "reviseEditor",
-            toggleEditor: "toggleEditor",
+            reviseEditor: 'reviseEditor',
+            toggleEditor: 'toggleEditor'
         }),
-        async templatesEnsureFolder() {
-            if (!this.cur_db || this.data_index == -1) return;
-            this.lock = false;
-            try {
-                await this.root.clone("root").createListAsync({
-                    name: "templates",
-                    conflict: ConflictBehavior.Fail
-                })
-            } catch {
-
+        async getTemplates() {
+            let res = await this.$auto.AcademicController.getTemplateInfo(
+                this.currentDataPath
+            );
+            if (res.status === 'success') {
+                this.templates = res.data;
+            } else {
+                this.$barWarning(res.message, {
+                    status: 'error'
+                });
             }
-            this.lock = true;
         },
         deleteTemplate() {
             if (!this.currentItem.id || !this.lock) return;
             this.$infoBox(this.local(`Are you sure to delete this template?`), {
-                status: "error",
-                title: this.local("Delete Template"),
-                confirmTitle: this.local("Confirm"),
-                cancelTitle: this.local("Cancel"),
+                status: 'error',
+                title: this.local('Delete Template'),
+                confirmTitle: this.local('Confirm'),
+                cancelTitle: this.local('Cancel'),
                 theme: this.theme,
                 confirm: async () => {
                     this.lock = false;
-                    let index = this.templates.indexOf(
-                        this.templates.find(
-                            (it) => it.id === this.currentItem.id
-                        )
-                    );
-                    this.templates.splice(index, 1);
-                    this.reviseDS({
-                        $index: this.data_index,
-                        templates: this.templates,
-                    });
-                    await this.root.path(`root/templates/${this.currentItem.id}.json`).delAsync()
+                    let res =
+                        await this.$auto.AcademicController.deleteTemplate(
+                            this.currentDataPath,
+                            this.currentItem.id
+                        );
+                    if (res.status !== 'success') {
+                        this.$barWarning(res.message, {
+                            status: 'error'
+                        });
+                        this.lock = true;
+                        return;
+                    }
+                    this.getTemplates();
                     this.lock = true;
                 },
-                cancel: () => { },
+                cancel: () => {}
             });
         },
         deleteTemplates() {
@@ -161,58 +198,65 @@ export default {
             this.$infoBox(
                 this.local(`Are you sure to delete these templates?`),
                 {
-                    status: "error",
-                    title: this.local("Delete Templates"),
-                    confirmTitle: this.local("Confirm"),
-                    cancelTitle: this.local("Cancel"),
+                    status: 'error',
+                    title: this.local('Delete Templates'),
+                    confirmTitle: this.local('Confirm'),
+                    cancelTitle: this.local('Cancel'),
                     theme: this.theme,
                     confirm: async () => {
                         this.lock = false;
-                        let copy = JSON.parse(
-                            JSON.stringify(this.currentChoosen)
-                        );
-                        for (let el of copy) {
-                            let index = this.templates.indexOf(
-                                this.templates.find((it) => it.id === el.id)
-                            );
-                            this.templates.splice(index, 1);
-                            this.reviseDS({
-                                $index: this.data_index,
-                                templates: this.templates,
-                            });
-                            await this.root.clone().path(`root/templates/${el.id}.json`).delAsync()
-                            this.lock = true;
+                        for (let i = 0; i < this.currentChoosen.length; i++) {
+                            let res =
+                                await this.$auto.AcademicController.deleteTemplate(
+                                    this.currentDataPath,
+                                    this.currentChoosen[i].id
+                                );
+                            if (res.status !== 'success') {
+                                this.$barWarning(res.message, {
+                                    status: 'error'
+                                });
+                                this.lock = true;
+                                return;
+                            }
                         }
+                        this.getTemplates();
+                        this.lock = true;
                     },
-                    cancel: () => { },
+                    cancel: () => {}
                 }
             );
         },
         openEditor(template) {
+            if (template.default) {
+                this.currentItem = template;
+                this.show.templatePreview = true;
+                return;
+            }
             this.reviseEditor({
-                type: "template",
+                type: 'template',
                 item: {},
-                target: template,
+                displayMode: 0,
+                target: template
             });
             this.toggleEditor(true);
-        },
-    },
+        }
+    }
 };
 </script>
 
 <style lang="scss">
-.ikfb-templates-container {
+.fabulous-templates-container {
     position: relative;
     width: 100%;
     height: 100%;
-    background: rgba(245, 245, 245, 1);
+    background: rgba(245, 245, 245, 0.9);
     display: flex;
     flex-direction: column;
     overflow: hidden;
     transition: all 0.3s;
 
     &.dark {
-        background: rgba(36, 36, 36, 1);
+        background: rgba(36, 36, 36, 0.9);
 
         .s-title {
             color: whitesmoke;

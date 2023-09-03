@@ -5,8 +5,8 @@ export class META_API {
     static async cref_getInfoByTitle(title, axios) {
         let baseUrl = "https://api.crossref.org/works";
         title = title.replace(/ +/g, "+");
-        try {
-            return await new Promise((resolve) => {
+        return await new Promise((resolve) => {
+            try {
                 axios
                     .get(
                         baseUrl,
@@ -26,10 +26,10 @@ export class META_API {
                         console.log(error);
                         resolve([]);
                     });
-            });
-        } catch (e) {
-            return [];
-        }
+            } catch (e) {
+                resolve([]);
+            }
+        });
     }
 
     static formatCref(data) {
@@ -73,9 +73,9 @@ export class META_API {
     static async semanticScholar_getInfoByTitle(title, axios) {
         let baseUrl =
             "https://api.semanticscholar.org/graph/v1/paper/search";
-        title = title.replace(/ +/g, "+");
-        try {
-            return await new Promise((resolve) => {
+        title = title.replace(/ +/g, " ");
+        return await new Promise((resolve) => {
+            try {
                 axios
                     .get(
                         baseUrl,
@@ -96,10 +96,10 @@ export class META_API {
                         console.log(error);
                         resolve([]);
                     });
-            });
-        } catch (e) {
-            return [];
-        }
+            } catch (e) {
+                resolve([]);
+            }
+        });
     }
 
     static formatSemanticScholar(data) {
@@ -123,6 +123,63 @@ export class META_API {
             });
             _metadata.authors = authors;
             _metadata.from = 'Semantic Scholar';
+            result.push(_metadata);
+        });
+
+        return result;
+    }
+
+    static async dataCite_getInfoByTitle(title, axios) {
+        let baseUrl =
+            "https://api.datacite.org/dois";
+        title = title.replace(/ +/g, " ");
+        return await new Promise((resolve) => {
+            try {
+                axios
+                    .get(
+                        baseUrl,
+                        {
+                            params: {
+                                "query": `titles.title:"${title}"`,
+                            },
+                        },
+                        {
+                            timeout: 10000,
+                        }
+                    )
+                    .then((response) => {
+                        resolve(META_API.formatDataCite(response.data.data));
+                    })
+                    .catch((error) => {
+                        console.log(error);
+                        resolve([]);
+                    });
+            } catch (e) {
+                resolve([]);
+            }
+        });
+    }
+
+    static formatDataCite(data) {
+        let result = [];
+        data.forEach((it) => {
+            let _metadata = JSON.parse(JSON.stringify(metadata));
+            let authors = [];
+            _metadata.title = it.attributes.titles[0].title;
+            _metadata.DOI = it.id;
+            _metadata.abstract = it.attributes.descriptions[0] ? it.attributes.descriptions[0].description : "";
+            _metadata.year = it.attributes.publicationYear.toString();
+            _metadata.publisher = it.attributes.publisher;
+            _metadata.url = it.url;
+            it.attributes.creators.forEach((el, idx) => {
+                let _author = JSON.parse(JSON.stringify(author));
+                _author.first = el.givenName;
+                _author.last = el.familyName;
+                _author.sequence = idx == 0 ? 'first' : 'additional';
+                authors.push(_author);
+            });
+            _metadata.authors = authors;
+            _metadata.from = 'Data Cite';
             result.push(_metadata);
         });
 

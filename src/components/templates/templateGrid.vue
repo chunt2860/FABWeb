@@ -1,21 +1,25 @@
 <template>
     <div
-        class="ikfb-templates-grid"
+        v-if="templates.length > 0"
+        class="fabulous-templates-grid"
         :class="[{dark: theme === 'dark'}]"
     >
         <div
             v-show="item.show"
-            v-for="(item, index) in thisValue"
+            v-for="(item, index) in templates"
             class="template-block"
+            :class="[{choosen: item.choosen}]"
             :key="index"
+            ref="list"
             @contextmenu="rightClick($event, item)"
         >
             <div
                 class="content-preview"
-                @click="chooseCurrent(item)"
+                @click="itemClick(item)"
             >
                 <fv-shimmer
-                    v-if="item.minContent == undefined"
+                    v-if="!item.minContent"
+                    :theme="theme"
                     style="position: relative; width: 100%; height: 100%;"
                 >
                     <div
@@ -47,8 +51,8 @@
                     </div>
                 </fv-shimmer>
                 <power-editor
-                    v-if="item.minContent != undefined"
-                    :value="item.minContent"
+                    v-else
+                    :value="computeContent(item.minContent)"
                     :placeholder="local('No content here ...')"
                     :editable="false"
                     :theme="theme"
@@ -71,27 +75,20 @@
                 </div>
             </div>
             <span
+                v-show="!item.default && multiChoosen"
                 class="icon-block icon"
                 key="multi-col"
-                @click="itemChooseClick(item)"
             >
-                <span
-                    class="icon"
-                    :class="{choose: item.choosen}"
-                >
-                    <i class="ms-Icon ms-Icon--FullCircleMask ll"></i>
-                    <i class="ms-Icon ms-Icon--CircleRing ll"></i>
-                    <i class="ms-Icon ms-Icon--Completed ll"></i>
-                </span>
+                <fv-check-box
+                    v-model="item.choosen"
+                    @click.native="chooseCurrent($event, item)"
+                ></fv-check-box>
             </span>
         </div>
         <right-menu
-            v-model="show.rightMenu"
+            ref="rightMenu"
             :theme="theme"
-            :posX="posX"
-            :posY="posY"
             :rightMenuWidth="rightMenuWidth"
-            @update-height="rightMenuHeight = $event"
         >
             <slot name="menu">
             </slot>
@@ -100,41 +97,47 @@
 </template>
 
 <script>
-import rightMenu from "@/components/general/rightMenu.vue";
-import { mapMutations, mapState, mapGetters } from "vuex";
+import rightMenu from '@/components/general/rightMenu.vue';
+import { mapState, mapGetters } from 'vuex';
 
-const path = require("path");
+import standardT from '@/assets/templates/Standard.json';
+import standardWithTableT from '@/assets/templates/Standard_with_Table.json';
+import ideaT from '@/assets/templates/Idea.json';
 
 export default {
     components: {
-        rightMenu,
+        rightMenu
     },
     props: {
         value: {
-            default: () => [],
+            default: []
         },
         filter: {
             default: () => {
                 return {
-                    key: "any",
-                    value: "",
+                    key: 'any',
+                    value: ''
                 };
-            },
+            }
+        },
+        multiChoosen: {
+            default: false
         },
         rightMenuWidth: {
-            default: 200,
-        },
+            default: 200
+        }
     },
     data() {
         return {
-            thisValue: [],
-            posX: 0,
-            posY: 0,
-            rightMenuItem: {},
-            rightMenuHeight: 0,
-            show: {
-                rightMenu: false,
+            templates: [],
+            defaults: {
+                standard: standardT,
+                standardWithTable: standardWithTableT,
+                idea: ideaT
             },
+            show: {
+                rightMenu: false
+            }
         };
     },
     watch: {
@@ -147,110 +150,143 @@ export default {
         filter() {
             this.filterValue();
         },
-        "filter.value"() {
+        'filter.value'() {
             this.filterValue();
-        },
+        }
     },
     computed: {
         ...mapState({
-            data_path: (state) => state.data_path,
-            data_index: (state) => state.data_index,
-            templates: (state) => state.data_structure.templates,
+            data_path: (state) => state.config.data_path,
+            data_index: (state) => state.config.data_index,
             show_editor: (state) => state.editor.show,
-            theme: (state) => state.theme,
+            theme: (state) => state.config.theme
         }),
-        ...mapGetters(["local", "cur_db"]),
-        v() {
-            return this;
-        },
+        ...mapGetters(['local', 'currentDataPath']),
         currentChoosen() {
             let result = [];
-            for (let i = 0; i < this.thisValue.length; i++) {
-                if (this.thisValue[i].choosen && this.thisValue[i].show)
-                    result.push(this.thisValue[i]);
+            for (let i = 0; i < this.templates.length; i++) {
+                if (this.templates[i].choosen && this.templates[i].show)
+                    result.push(this.templates[i]);
             }
             return result;
         },
+        computeContent() {
+            return (content) => {
+                try {
+                    return JSON.parse(content);
+                } catch (e) {
+                    return {
+                        type: 'doc',
+                        content: []
+                    };
+                }
+            };
+        }
     },
     mounted() {
         this.loadTemplates();
         this.filterValue();
     },
     methods: {
-        ...mapMutations({
-            reviseDS: "reviseDS",
-            toggleEditor: "toggleEditor",
-        }),
         async loadTemplates() {
-            this.thisValue = JSON.parse(JSON.stringify(this.value));
-            let promises = [];
-            for (let el of this.thisValue) {
-                el.show = true;
-                el.choosen = false;
-                this.$set(this.thisValue, this.thisValue.indexOf(el), el);
-            }
-            for (let el of this.thisValue) {
-                promises.push(
-                    new Promise((resolve) => {
-                        this.cur_db.readFile(`root/templates/${el.id}.json`).then((data) => {
-                            let content = data;
-                            try {
-                                el.content = JSON.parse(content);
-                                el.content.content = el.content.content.slice(
-                                    0,
-                                    10
-                                );
-                            } catch (e) {
-                                el.content = content.slice(0, 500);
-                            }
-                            el.minContent = el.content;
-                            this.$set(
-                                this.thisValue,
-                                this.thisValue.indexOf(el),
-                                el
-                            );
-                            resolve(el.id);
-                        });
-                    })
+            this.templates = [];
+            let templates = [];
+            for (let el of this.value) {
+                let template = {};
+                template.id = el.id;
+                template.name = el.name;
+                template.emoji = el.emoji;
+                template.default = false;
+                template.createDate = el.createDate;
+                template.updateDate = el.updateDate;
+                template.choosen = false;
+                template.show = true;
+                let res = await this.$auto.AcademicController.getTemplateContent(
+                    this.currentDataPath,
+                    el.id
                 );
+                if (res.code !== 200) {
+                    this.$barWarning(res.message, {
+                        status: 'error'
+                    });
+                    return;
+                }
+                try {
+                    template.content = res.data;
+                    let contentObj = JSON.parse(template.content);
+                    let minContent = {
+                        type: 'doc',
+                        content: []
+                    };
+                    minContent.content = contentObj.content.slice(0, 10);
+                    template.minContent = JSON.stringify(minContent);
+                } catch (e) {
+                    template.minContent = template.content;
+                }
+                templates.push(template);
             }
-            return await Promise.all(promises);
+            let defaults = this.defaultTemplates();
+            for (let el of defaults) {
+                templates.push(el);
+            }
+            this.templates.splice(0, this.templates.length);
+            this.templates = templates;
         },
-        rightClick(event, item) {
-            event.preventDefault();
-            this.show.rightMenu = true;
-            let bounding = this.$el.getBoundingClientRect();
-            let targetPos = {};
-            targetPos.x = event.x;
-            targetPos.y = event.y;
-            if (targetPos.x < bounding.left) targetPos.x = bounding.left;
-            if (targetPos.x + this.rightMenuWidth > bounding.right)
-                targetPos.x = bounding.right - this.rightMenuWidth;
-            if (targetPos.y < bounding.top) targetPos.y = bounding.top;
-            if (targetPos.y + this.rightMenuHeight > bounding.bottom)
-                targetPos.y = bounding.bottom - this.rightMenuHeight;
-            this.posX = targetPos.x;
-            this.posY = targetPos.y;
-
-            this.$emit("rightclick", item);
+        defaultTemplates() {
+            let ori = [
+                { name: 'Standard', ori: standardT },
+                { name: 'Standard with Table', ori: standardWithTableT },
+                { name: 'Idea', ori: ideaT }
+            ];
+            let result = [];
+            ori.forEach((el) => {
+                let template = {};
+                template.id = this.$Guid();
+                template.name = el.name;
+                template.emoji = '⚙';
+                template.default = true;
+                template.createDate = null;
+                template.updateDate = null;
+                template.choosen = false;
+                template.show = true;
+                template.content = JSON.stringify(el.ori.content);
+                try {
+                    let contentObj = el.ori.content;
+                    let minContent = {
+                        type: 'doc',
+                        content: []
+                    };
+                    minContent.content = contentObj.content.slice(0, 10);
+                    template.minContent = JSON.stringify(minContent);
+                } catch (e) {
+                    template.minContent = JSON.stringify(el.ori.content);
+                }
+                result.push(template);
+            });
+            return result;
+        },
+        rightClick($event, item) {
+            $event.preventDefault();
+            this.$emit('rightclick', item);
+            this.$refs.rightMenu.rightClick($event, this.$el);
         },
         filterValue() {
             let filter = this.filter;
-            if (typeof this.filter == "string")
+            if (typeof this.filter == 'string')
                 filter = {
-                    key: "any",
-                    value: this.filter,
+                    key: 'any',
+                    value: this.filter
                 };
             if (filter.key == undefined || filter.value == undefined) {
-                console.warn(this.filter, "Invalid filter.");
+                console.warn(this.filter, 'Invalid filter.');
                 return 0;
             }
-            if (filter.key == "any") {
-                for (let i = 0; i < this.thisValue.length; i++) {
+            if (filter.key == 'any') {
+                for (let i = 0; i < this.templates.length; i++) {
                     let status = false;
-                    let item = this.thisValue[i];
-                    for (let it in this.thisValue[i]) {
-                        if (typeof item[it] != "string") continue;
+                    let item = this.templates[i];
+                    for (let it in this.templates[i]) {
+                        if (typeof item[it] != 'string') continue;
                         if (
                             item[it]
                                 .toLowerCase()
@@ -261,47 +297,57 @@ export default {
                         }
                     }
                     item.show = status;
-                    this.$set(this.thisValue, i, item);
+                    this.$set(this.templates, i, item);
                 }
             } else {
-                for (let i = 0; i < this.thisValue.length; i++) {
-                    let item = this.thisValue[i];
+                for (let i = 0; i < this.templates.length; i++) {
+                    let item = this.templates[i];
                     let status =
-                        this.thisValue[i][this.filter.key]
+                        this.templates[i][this.filter.key]
                             .toLowerCase()
                             .indexOf(filter.value.toLowerCase()) > -1;
                     item.show = status;
-                    this.$set(this.thisValue, i, item);
+                    this.$set(this.templates, i, item);
                 }
             }
-            this.$emit("change-value", this.thisValue);
+            this.$emit('change-value', this.templates);
         },
-        itemChooseClick(item) {
-            let index = this.thisValue.indexOf(item);
-            let t = item;
-            t.choosen = !t.choosen;
-            this.$set(this.thisValue, index, t);
-            this.$emit("change-value", this.thisValue);
-            this.$emit("choose-items", this.currentChoosen);
+        itemClick(item) {
+            if (!this.multiChoosen)
+                for (let i = 0; i < this.templates.length; i++) {
+                    let t = this.templates[i];
+                    if (t !== item) {
+                        t.choosen = false;
+                        this.$set(this.templates, i, t);
+                    } else {
+                        t.choosen = true;
+                        this.$set(this.templates, i, t);
+                    }
+                }
+
+            this.$emit('change-value', this.templates);
+            this.$emit('item-click', item);
+            this.$emit('choose-items', this.currentChoosen);
         },
-        chooseCurrent(item) {
-            for (let i = 0; i < this.thisValue.length; i++) {
-                let t = this.thisValue[i];
-                t.choosen = false;
-                this.$set(this.thisValue, i, t);
-            }
-            item.choosen = true;
-            this.$set(this.thisValue, this.thisValue.indexOf(item), item);
-            this.$emit("change-value", this.thisValue);
-            this.$emit("item-click", item);
-            this.$emit("choose-items", this.currentChoosen);
-        },
-    },
+        chooseCurrent(event, item) {
+            event.stopPropagation();
+            if (!this.multiChoosen)
+                for (let i = 0; i < this.templates.length; i++) {
+                    let t = this.templates[i];
+                    if (t !== item) {
+                        t.choosen = false;
+                        this.$set(this.templates, i, t);
+                    }
+                }
+            this.$emit('change-value', this.templates);
+            this.$emit('choose-items', this.currentChoosen);
+        }
+    }
 };
 </script>
 
 <style lang="scss">
-.ikfb-templates-grid {
+.fabulous-templates-grid {
     @include FullRelative;
 
     padding: 15px;
@@ -317,7 +363,7 @@ export default {
         .template-block {
             background: rgba(36, 36, 36, 1);
             color: whitesmoke;
-            border: rgba(90, 90, 90, 0.1) solid thin;
+            border: rgba(200, 200, 200, 0.1) solid thin;
 
             .bottom-info {
                 color: whitesmoke;
@@ -337,23 +383,26 @@ export default {
         @include FullRelative;
 
         height: 300px;
-        border: rgba(200, 200, 200, 0.1) solid thin;
+        border: rgba(90, 90, 90, 0.1) solid 2px;
         border-radius: 6px;
         display: flex;
         flex-direction: column;
         transition: all 0.2s;
-        box-shadow: 0px 0px 8px rgba(0, 0, 0, 0.1),
-            -3px 3px 8px rgba(0, 0, 0, 0.1);
+        box-shadow: 0px 0px 3px rgba(0, 0, 0, 0.1);
         overflow: hidden;
 
         &:hover {
-            box-shadow: 0px 0px 8px rgba(0, 0, 0, 0.2),
-                -3px 3px 8px rgba(0, 0, 0, 0.2);
+            box-shadow: 3px 3px 8px rgba(0, 0, 0, 0.2),
+                -3px -3px 8px rgba(0, 0, 0, 0.2);
         }
 
         &:active {
-            box-shadow: 3px 3px 8px rgba(0, 0, 0, 0.2),
-                -3px -3px 8px rgba(0, 0, 0, 0.2);
+            box-shadow: 0px 0px 3px rgba(0, 0, 0, 0.2),
+                0px 3px 8px rgba(0, 0, 0, 0.2);
+        }
+
+        &.choosen {
+            border-color: rgba(255, 180, 0, 0.6);
         }
 
         .content-preview {
@@ -404,22 +453,16 @@ export default {
         }
 
         .icon-block {
+            @include HcenterVcenter;
+
             position: absolute;
             top: 15px;
-            right: 15px;
-            width: 25px;
-            height: 25px;
-            background: rgba(200, 200, 200, 0.3);
-            border-radius: 50%;
+            right: 5px;
+            width: 30px;
+            height: 30px;
+            border-radius: 8px;
             box-sizing: border-box;
-            display: flex;
-            justify-content: center;
-            align-items: center;
             z-index: 2;
-
-            .icon {
-                @include multi-selection;
-            }
         }
     }
 }

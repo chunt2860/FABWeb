@@ -1,4 +1,12 @@
+var path = require("path");
+
+const resolve = url =>
+{
+    return path.join(__dirname, url);
+};
+
 module.exports = {
+    runtimeCompiler: true,
     css: {
         loaderOptions: {
             scss: {
@@ -6,11 +14,12 @@ module.exports = {
             }
         }
     },
-    devServer: {
-        port: 8080,
-        // https: true
-    },
-    publicPath: process.env.NODE_ENV === 'production'
-    ? '/FunBook/'
-    : '/'
+    configureWebpack: {
+        resolve: {
+            alias: {
+                "@": resolve("./src")
+            },
+            extensions: ["*", ".js", ".vue", ".json"]
+        }
+    }
 };

@@ -14,7 +14,9 @@
                     :font-size="18"
                     :font-weight="'bold'"
                     underline
+                    :border-color="'rgba(123, 139, 209, 0.3)'"
                     :focus-border-color="'rgba(123, 139, 209, 1)'"
+                    :border-width="2"
                     :is-box-shadow="true"
                     style="width: 100%; height: 60px; margin-top: 15px;"
                     @keyup.enter="rename"
@@ -24,12 +26,13 @@
         <template v-slot:control>
             <fv-button
                 theme="dark"
-                background="rgba(0, 153, 204, 1)"
-                :disabled="!value || name === '' || !cur_db"
+                background="rgba(0, 98, 158, 1)"
+                :disabled="!value || name === ''"
                 @click="rename"
             >{{local('Confirm')}}</fv-button>
             <fv-button
                 :theme="theme"
+                style="margin-left: 5px;"
                 @click="thisShow = false"
             >{{local('Cancel')}}</fv-button>
         </template>
@@ -38,7 +41,7 @@
 
 <script>
 import floatWindowBase from "../window/floatWindowBase.vue";
-import { mapMutations, mapState, mapGetters } from "vuex";
+import { mapState, mapGetters } from "vuex";
 
 export default {
     components: {
@@ -73,32 +76,29 @@ export default {
     },
     computed: {
         ...mapState({
-            data_index: (state) => state.data_index,
-            data_path: (state) => state.data_path,
-            items: (state) => state.data_structure.items,
-            theme: (state) => state.theme,
+            data_index: (state) => state.config.data_index,
+            data_path: (state) => state.config.data_path,
+            theme: (state) => state.config.theme,
         }),
-        ...mapGetters(["local", "cur_db"]),
-        v() {
-            return this;
-        },
+        ...mapGetters(['local', 'currentDataPath']),
     },
     methods: {
-        ...mapMutations({
-            reviseDS: "reviseDS",
-        }),
         async rename() {
-            if (!this.cur_db || !this.value || !this.item || this.name === "")
-                return;
-            let item = this.items.find((it) => it.id === this.item.id);
-            let _page = item.pages.find((it) => it.id === this.value.id);
-            _page.name = this.name;
+            if (!this.value || !this.item || this.name === "") return;
             this.value.name = this.name;
-            this.reviseDS({
-                $index: this.data_index,
-                items: this.items,
-            });
-            this.thisShow = false;
+            let res = await this.$auto.AcademicController.updateItemPage(
+                this.currentDataPath,
+                this.item.id,
+                this.value
+            );
+            if (res.status === "success") {
+                this.thisShow = false;
+                this.$emit("finished");
+            } else {
+                this.$barWarning(res.message, {
+                    status: "error",
+                });
+            }
         },
     },
 };

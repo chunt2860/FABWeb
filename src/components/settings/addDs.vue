@@ -1,74 +1,118 @@
 <template>
-    <float-window-base v-model="thisShow" :title="local('Init New Data Source')" :theme="theme">
+    <float-window-base
+        v-model="thisShow"
+        :title="local('New Data Source')"
+        :theme="theme"
+    >
         <template v-slot:content>
-            <div class="w-p-block" style="height: 100%;">
-                <p class="w-title">{{ local('Data Source Name') }}</p>
-                <fv-Breadcrumb v-model="path" :theme="theme" :readOnly="false"
-                    style="width: 100%; height: 30px; margin-top: 15px;" @keyup.native.enter="addDS">
-                </fv-Breadcrumb>
-                <div v-show="lock.loading" class="tree-view-window">
-                    <fv-TreeView v-model="treeList" :theme="theme" expandedIconPosition="right"
-                        :background="theme == 'dark' ? 'rgba(45, 45, 45, 1)' : 'rgba(255, 255, 255, 1)'"
-                        :view-style="{ backgroundColor: theme == 'dark' ? 'rgba(45, 45, 45, 1)' : 'rgba(255, 255, 255, 1)', backgroundColorHover: theme == 'dark' ? 'rgba(200, 200, 200, 0.1)' : 'rgba(255, 255, 255, 1)' }"
-                        style="width: 100%; height: 100%; overflow: auto;" @click="expandItem">
-                        <template v-slot:default="x">
-                            <div class="tree-view-custom-item">
-                                <img v-if="!x.item.loading" draggable="false" class="icon-img" :src="x.item.icon"
-                                    alt="">
-                                <fv-progress-ring v-else loading="true" r="10" borderWidth="2"
-                                    background="rgba(200, 200, 200, 0.1)" style="display: flex; align-item: center;">
-                                </fv-progress-ring>
-                                <p class="tree-view-custom-label">{{ x.item.name }}</p>
-                            </div>
-                        </template>
-                    </fv-TreeView>
-                </div>
-                <div v-show="!lock.loading" class="loading-block">
-                    <fv-img draggable="false" :src="img.OneDrive" style="width: 90px; height: auto; margin: 15px;">
-                    </fv-img>
-                    <fv-progress-ring loading="true" r="15" borderWidth="3" background="rgba(200, 200, 200, 0.1)">
-                    </fv-progress-ring>
-                </div>
+            <div
+                class="w-p-block"
+                @keyup.enter="addDS"
+            >
+                <p class="w-title">{{local('Data Source Name')}}</p>
+                <fv-text-box
+                    v-model="name"
+                    :placeholder="local('New Data Source Name')"
+                    :theme="theme"
+                    :font-size="15"
+                    underline
+                    :border-radius="6"
+                    :border-color="'rgba(123, 139, 209, 0.6)'"
+                    :focus-border-color="'rgba(123, 139, 209, 1)'"
+                    :border-width="2"
+                    :is-box-shadow="true"
+                    style="width: 90%; height: 45px; margin-top: 5px;"
+                    @keyup.enter="addDS"
+                ></fv-text-box>
+                <p
+                    class="w-title"
+                    style="margin-top: 25px;"
+                >{{local(`Select to Create at Local or Remote`)}}</p>
+                <fv-toggle-switch
+                    v-show="isLogin"
+                    :title="local('Select to Create at Local or Remote')"
+                    v-model="remote"
+                    width="120"
+                    height="30"
+                    :on="local('Create at Remote')"
+                    :off="local('Create at Local')"
+                    :onForeground="theme === 'dark' ? '#fff' : '#000'"
+                    :offForeground="theme === 'dark' ? '#fff' : '#000'"
+                    :switch-on-background="theme === 'dark' ? '#000' : 'rgba(140, 148, 228, 1)'"
+                    :insideContent="true"
+                >
+                </fv-toggle-switch>
+                <p
+                    v-show="!isLogin || !remote"
+                    class="w-title"
+                    style="margin-top: 25px;"
+                >{{local('Choose Folder')}}</p>
+                <fv-text-box
+                    v-show="!isLogin || !remote"
+                    v-model="path"
+                    :placeholder="local('Choose Data Source Directory ...')"
+                    :theme="theme"
+                    :font-size="12"
+                    :border-radius="6"
+                    background="transparent"
+                    :border-color="'rgba(123, 139, 209, 0.3)'"
+                    :focus-border-color="'rgba(123, 139, 209, 1)'"
+                    :border-width="2"
+                    :reveal-border="true"
+                    :is-box-shadow="true"
+                    readonly
+                    style="width: 90%; height: 45px; margin-top: 5px;"
+                    @click.native="choosePath"
+                ></fv-text-box>
+                <p
+                    v-show="!isLogin || !remote"
+                    class="w-info"
+                >{{local('When adding a data source, a data source folder will be created under the data source path, and a data source configuration file will be created under the data source folder.')}}</p>
             </div>
         </template>
         <template v-slot:control>
-            <fv-button theme="dark" background="rgba(0, 153, 204, 1)" :disabled="path === ''" @click="addDS">
-                {{ local('Confirm') }}</fv-button>
-            <fv-button :theme="theme" @click="thisShow = false">{{ local('Cancel') }}</fv-button>
+            <fv-button
+                v-if="!isLogin || !remote"
+                theme="dark"
+                background="rgba(0, 98, 158, 1)"
+                :disabled="name === '' || path === ''"
+                @click="addDS"
+            >{{local('Confirm')}}</fv-button>
+            <fv-button
+                v-else
+                theme="dark"
+                background="rgba(0, 98, 158, 1)"
+                :disabled="name === ''"
+                @click="addDSRemote"
+            >{{local('Confirm')}}</fv-button>
+            <fv-button
+                :theme="theme"
+                style="margin-left: 5px;"
+                @click="thisShow = false"
+            >{{local('Cancel')}}</fv-button>
         </template>
     </float-window-base>
 </template>
 
 <script>
-import floatWindowBase from "../window/floatWindowBase.vue";
-import { mapMutations, mapState, mapGetters } from "vuex";
-import { GraphAPI } from "msgraphapi";
-import OneDrive from "@/assets/settings/OneDrive.svg";
-import folder from "@/assets/settings/folder.svg";
-import file from "@/assets/settings/file.svg";
+import floatWindowBase from '../window/floatWindowBase.vue';
+import { mapState, mapGetters } from 'vuex';
 
 export default {
     components: {
-        floatWindowBase,
+        floatWindowBase
     },
     props: {
         show: {
-            default: false,
-        },
+            default: false
+        }
     },
     data() {
         return {
             thisShow: this.show,
-            path: "",
-            treeList: [],
-            img: {
-                OneDrive,
-                folder,
-                file,
-            },
-            lock: {
-                loading: true,
-            },
+            name: '',
+            path: '',
+            remote: false
         };
     },
     watch: {
@@ -76,146 +120,80 @@ export default {
             this.thisShow = val;
         },
         thisShow(val) {
-            this.$emit("update:show", val);
-            this.path = "";
-            if (val) {
-                this.lock.loading = true;
-                this.getRootInfo();
-            }
-        },
+            this.$emit('update:show', val);
+            this.name = '';
+            this.path = '';
+        }
     },
     computed: {
         ...mapState({
-            /**
-             * @returns {GraphAPI}
-             */
-            graphAPI: (state) => state.graphAPI,
-            data_path: (state) => state.data_path,
-            language: (state) => state.language,
-            dbList: (state) => state.dbList,
-            theme: (state) => state.theme,
+            data_path: (state) => state.config.data_path,
+            language: (state) => state.config.language,
+            userInfo: (state) => state.User.info,
+            theme: (state) => state.config.theme
         }),
-        ...mapGetters(["local"]),
-        v() {
-            return this;
-        },
+        ...mapGetters(['local', 'currentDataPath']),
+        isLogin() {
+            return this.userInfo.id;
+        }
     },
     methods: {
-        ...mapMutations({
-            reviseConfig: "reviseConfig",
-        }),
+        async choosePath() {
+            await this.$local_api.ConfigController.selectLocalDataSourcePath().then(
+                (res) => {
+                    if (res.status === 'success') {
+                        this.path = res.data;
+                    }
+                }
+            );
+        },
         async addDS() {
-            if (this.path === "") return;
-            this.data_path.push(this.path);
-            await this.reviseConfig({
-                v: this,
-                data_path: this.data_path,
-            });
-            this.$emit("finished");
-            this.thisShow = false;
+            if (this.path === '') return;
+            if (this.name === '') return;
+            this.$local_api.ConfigController.createDataSource(
+                this.path,
+                this.name
+            )
+                .then((res) => {
+                    if (res.status !== 'success') {
+                        this.$barWarning(res.message, {
+                            status: 'warning'
+                        });
+                    } else {
+                        this.$emit('finished');
+                        this.thisShow = false;
+                    }
+                })
+                .catch((res) => {
+                    this.$barWarning(res.message, {
+                        status: 'warning'
+                    });
+                });
         },
-        async getRootInfo() {
-            if (!this.lock.loading) return;
-            this.lock.loading = false;
-            let res = await this.graphAPI.OneDrive.Drive().listAsync();
-            if (res) {
-                let treeList = this.onedriveChildrenFormat(res);
-                this.treeList = treeList;
-            }
-            this.lock.loading = true;
-        },
-        onedriveChildrenFormat(arr, parent = null) {
-            let treeList = arr;
-            treeList.forEach((el, idx) => {
-                if (el.folder) {
-                    treeList[idx].icon = this.img.folder;
-                    treeList[idx].children = [];
-                } else treeList[idx].icon = this.img.file;
-                treeList[idx].loading = false;
-                treeList[idx].finished = false;
-                treeList[idx].depth = parent ? parent.depth + 1 : 1;
-                treeList[idx].parent = parent;
-                treeList[idx].path = parent
-                    ? parent.path + "/" + treeList[idx].name
-                    : treeList[idx].name;
-            });
-            return treeList;
-        },
-        async expandItem(item) {
-            this.path = item.path;
-            if (!item.folder) return;
-            if (item.finished) return;
-            item.loading = true;
-            let children = await this.graphAPI.OneDrive.Drive().item(item.id).listAsync()
-            if (children) {
-                item.children = this.onedriveChildrenFormat(
-                    children,
-                    item
-                );
-            }
-            item.finished = true;
-            item.loading = false;
-        },
-    },
+        async addDSRemote() {
+            if (this.name === '') return;
+            this.$api.ConfigController.createDataSource({
+                name: this.name
+            })
+                .then((res) => {
+                    if (res.code !== 200) {
+                        this.$barWarning(res.message, {
+                            status: 'warning'
+                        });
+                    } else {
+                        this.$emit('finished');
+                        this.thisShow = false;
+                    }
+                })
+                .catch((res) => {
+                    this.$barWarning(res.message, {
+                        status: 'warning'
+                    });
+                });
+        }
+    }
 };
 </script>
 
 <style lang="scss">
-.tree-view-window {
-    position: relative;
-    flex: 1;
-    width: 100%;
-    height: 100%;
-    margin-top: 35px;
-    overflow: auto;
-
-    .tree-view-custom-item {
-        position: relative;
-        width: 100%;
-        box-sizing: border-box;
-        display: flex;
-        align-items: center;
-
-        .icon-img {
-            width: 20px;
-            height: auto;
-        }
-
-        .tree-view-custom-label {
-            @include nowrap;
-
-            margin-left: 5px;
-        }
-
-        .tree-view-custom-text-box {
-            margin-left: 5px;
-        }
-
-        .tree-view-custom-confirm {
-            width: 30px;
-            height: 30px;
-            flex-shrink: 0;
-            margin-left: 5px;
-            margin-right: 25px;
-
-            i.ms-Icon {
-                margin: 0px;
-                padding: 0px;
-                display: flex;
-                align-items: center;
-            }
-        }
-    }
-}
-
-.loading-block {
-    @include HcenterVcenterC;
-
-    position: relative;
-    width: 100%;
-    height: 100%;
-    max-height: 500px;
-    flex: 1;
-    margin-top: 35px;
-}
 </style>

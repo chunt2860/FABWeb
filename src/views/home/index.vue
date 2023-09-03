@@ -1,159 +1,386 @@
 <template>
-    <div class="ikfb-home-container" :class="[{ dark: theme === 'dark' }]">
-        <div class="s-row">
-            <p class="s-title">{{ pid === false ? local('All') : pname }}</p>
+    <div
+        class="fabulous-home-container"
+        :class="[{dark: theme === 'dark'}]"
+    >
+        <div
+            :draggable="false"
+            class="s-row"
+            style="margin-top: 45px;"
+        >
+            <p class="s-title">{{partitionInfo.name}}</p>
         </div>
         <div class="m-home-block">
             <div class="row between">
-                <fv-text-box v-model="currentSearch" :placeholder="local('Filtering from current content')"
-                    :theme="theme" :background="theme === 'dark' ? 'rgba(75, 75, 75, 1)' : 'rgba(245, 245, 245, 1)'"
-                    icon="Filter" borderWidth="2" :revealBorder="true"
-                    style="box-shadow: 0px 3px 8px rgba(0, 0, 0, 0.1)"></fv-text-box>
+                <fv-text-box
+                    v-model="currentSearch.value"
+                    :placeholder="` ` + local('Filtering from current content')"
+                    :theme="theme"
+                    :background="theme === 'dark' ? 'rgba(75, 75, 75, 0.6)' : 'rgba(255, 255, 255, 0.6)'"
+                    icon="Filter"
+                    borderWidth="1"
+                    :border-radius="30"
+                    :revealBorder="true"
+                    @debounce-input="currentSearch.debounce = $event"
+                ></fv-text-box>
                 <div class="sort-block">
-                    <fv-combobox v-model="sortKey" :options="sortOptions" :placeholder="local('Sort by')"
-                        :inputBackground="theme === 'dark' ? 'rgba(75, 75, 75, 1)' : 'rgba(245, 245, 245, 1)'"
-                        :borderRadius="3" :theme="theme" style="width: 120px;"></fv-combobox>
-                    <fv-button :theme="theme" :disabled="sortKey.key == undefined"
+                    <fv-combobox
+                        v-model="sortKey"
+                        :options="sortOptions"
+                        :placeholder="local('Sort by')"
+                        :inputBackground="theme === 'dark' ? 'rgba(75, 75, 75, 1)' : 'rgba(255, 255, 255, 0.6)'"
+                        :borderRadius="3"
+                        :theme="theme"
+                        style="width: 120px;"
+                    ></fv-combobox>
+                    <fv-button
+                        :theme="theme"
+                        :disabled="sortKey.key == undefined"
+                        :background="theme === 'light' ? 'white' : ''"
                         style="width: 35px; height: 35px; margin-left: 5px;"
                         :title="sortDesc == 1 ? local('Switch to Descending') : local('Switch to Ascending')"
-                        @click="sortDesc = -sortDesc">
-                        <i class="ms-Icon" :class="[`ms-Icon--${sortDesc == 1 ? 'Ascending' : 'Descending'}`]"
-                            style="font-size: 18px;"></i>
+                        :is-box-shadow="true"
+                        @click="sortDesc = -sortDesc"
+                    >
+                        <i
+                            class="ms-Icon"
+                            :class="[`ms-Icon--${sortDesc == 1 ? 'Ascending' : 'Descending'}`]"
+                            style="font-size: 18px;"
+                        ></i>
                     </fv-button>
                 </div>
             </div>
             <div class="row command-bar">
-                <fv-command-bar :options="cmd" :theme="theme"
-                    :background="theme === 'dark' ? 'transparent' : 'rgba(245, 245, 245, 1)'" style="flex: 1;">
-                </fv-command-bar>
+                <fv-command-bar
+                    :options="cmd"
+                    :theme="theme"
+                    :background="theme === 'dark' ? 'transparent' : 'rgba(245, 245, 245, 0)'"
+                    style="flex: 1; background: transparent;"
+                ></fv-command-bar>
             </div>
             <div class="row main-table">
-                <main-list :value="filterItems" :edit="editable" :sortKey="sortKey.key" :desc="sortDesc" :theme="theme"
-                    :filter="currentSearch" @open-file="openFile"
-                    @label-click="($event) => { currentItem = $event; show.rename = true }"
-                    @rightclick="currentItem = $event" @choose-items="currentChoosen = $event"
-                    @insert-emoji="reviseItemEmoji($event.item, $event.emoji)">
+                <main-list
+                    :value="itemList"
+                    :edit="editable"
+                    :theme="theme"
+                    @open-file="openFile"
+                    @label-click="($event) => {currentItem = $event; show.rename = true}"
+                    @rightclick="currentItem = $event"
+                    @choose-items="currentChoosen = $event"
+                    @insert-emoji="reviseItemEmoji($event.item, $event.emoji)"
+                >
                     <template v-slot:row_expand="x">
                         <div class="main-row-item-info">
-                            <div class="item" style="display: flex;"
-                                @click="($event) => { currentItem = x.item; show.rename = true }">
-                                <fv-tag v-if="x.item.labels.length > 0" :value="x.item.labels" :theme="theme"
-                                    style="width: 100%;"></fv-tag>
-                                <i v-if="x.item.labels.length <= 0" class="ms-Icon ms-Icon--Tag"></i>
-                                <p v-if="x.item.labels.length <= 0" style="margin-left: 15px;">{{ local("Add Labels") }}
-                                </p>
+                            <div
+                                class="item"
+                                style="display: flex;"
+                                @click="($event) => {currentItem = x.item; show.rename = true}"
+                            >
+                                <fv-tag
+                                    v-if="x.item.labels.length > 0"
+                                    :value="x.item.labels"
+                                    :theme="theme"
+                                    style="width: 100%;"
+                                ></fv-tag>
+                                <i
+                                    v-if="x.item.labels.length <= 0"
+                                    class="ms-Icon ms-Icon--Tag"
+                                ></i>
+                                <p
+                                    v-if="x.item.labels.length <= 0"
+                                    style="margin-left: 15px;"
+                                >{{local("Add Labels")}}</p>
                             </div>
-                            <div v-show="x.item.pdf" class="item"
-                                @dblclick="openFile(`${x.item.id}/${x.item.pdf}.pdf`)">
-                                <i class="ms-Icon ms-Icon--PDF"></i>
-                                <p class="highlight" @click="openFile(`${x.item.id}/${x.item.pdf}.pdf`)">PDF</p>
-                                <p class="sec highlight" @click="openFile(`${x.item.id}/${x.item.pdf}.pdf`)">
-                                    {{ x.item.pdf }}.pdf</p>
+                            <div
+                                v-show="x.item.pdf"
+                                class="item"
+                                @dblclick="openFile(x.item.id, x.item.pdf, `.pdf`)"
+                            >
+                                <img
+                                    draggable="false"
+                                    :src="img.pdf"
+                                    alt=""
+                                    style="width: 18px; height: 18px; object-fit: contain;"
+                                >
+                                <p
+                                    class="highlight"
+                                    @click="openPDF(x.item, 'inside')"
+                                >PDF</p>
+                                <p
+                                    v-show="!isRemote"
+                                    class="sec highlight"
+                                    @click="openFile(x.item.id, x.item.pdf, `.pdf`)"
+                                >{{x.item.pdf}}.pdf</p>
                                 <p></p>
-                                <fv-button background="rgba(255, 180, 0, 1)" style="width: 35px; height: 35px;"
-                                    :title="local('Open Folder')" @click="openFile(`${x.item.id}`)">
-                                    <i class="ms-Icon ms-Icon--FabricFolder"></i>
+                                <fv-button
+                                    v-show="!isRemote"
+                                    :theme="theme"
+                                    style="width: 35px; height: 35px;"
+                                    :title="local('Open Folder')"
+                                    :is-box-shadow="true"
+                                    @click="openFile(x.item.id)"
+                                >
+                                    <img
+                                        draggable="false"
+                                        :src="img.folder"
+                                        alt=""
+                                        style="width: 18px; height: 18px; object-fit: contain;"
+                                    >
+                                </fv-button>
+                                <fv-button
+                                    :theme="theme"
+                                    style="width: 35px; height: 35px;"
+                                    :title="local('Open in Browser')"
+                                    :is-box-shadow="true"
+                                    @click="openPDF(x.item, 'outside')"
+                                >
+                                    <img
+                                        draggable="false"
+                                        :src="img.viewer"
+                                        alt=""
+                                        style="width: 18px; height: 18px; object-fit: contain;"
+                                    >
                                 </fv-button>
                             </div>
-                            <div v-show="x.item.metadata" class="item">
-                                <i class="ms-Icon ms-Icon--LinkedDatabase"></i>
-                                <p class="highlight" @click="showMetadata(x.item)">Metadata</p>
-                                <p class="sec highlight" @click="showMetadata(x.item)">{{ x.item.id }}.metadata</p>
+                            <div
+                                v-show="x.item.metadata"
+                                class="item"
+                            >
+                                <img
+                                    draggable="false"
+                                    :src="img.metadata"
+                                    alt=""
+                                    style="width: 18px; height: 18px; object-fit: contain;"
+                                >
+                                <p
+                                    class="highlight"
+                                    @click="showMetadata(x.item)"
+                                >Metadata</p>
+                                <p
+                                    v-show="!isRemote"
+                                    class="sec highlight"
+                                    @click="showMetadata(x.item)"
+                                >{{x.item.id}}.metadata</p>
                                 <p></p>
-                                <fv-button background="rgba(255, 180, 0, 1)" style="width: 35px; height: 35px;"
-                                    :title="local('Open Folder')" @click="openFile(`${x.item.id}`)">
-                                    <i class="ms-Icon ms-Icon--FabricFolder"></i>
+                                <fv-button
+                                    v-show="!isRemote"
+                                    :theme="theme"
+                                    style="width: 35px; height: 35px;"
+                                    :title="local('Open Folder')"
+                                    :is-box-shadow="true"
+                                    @click="openFile(x.item.id)"
+                                >
+                                    <img
+                                        draggable="false"
+                                        :src="img.folder"
+                                        alt=""
+                                        style="width: 18px; height: 18px; object-fit: contain;"
+                                    >
+                                </fv-button>
+                                <fv-button
+                                    :theme="theme"
+                                    style="width: 35px; height: 35px;"
+                                    :title="local('Open Folder')"
+                                    :is-box-shadow="true"
+                                    @click="showMetadata(x.item)"
+                                >
+                                    <img
+                                        draggable="false"
+                                        :src="img.folder"
+                                        alt=""
+                                        style="width: 18px; height: 18px; object-fit: contain;"
+                                    >
                                 </fv-button>
                             </div>
-                            <div v-for="(page, index) in x.item.pages" :key="index" class="item">
-                                <emoji-callout :value="page.emoji" :theme="theme" style="width: 25px;"
-                                    @insert-emoji="revisePageEmoji(x.item, page, $event)"></emoji-callout>
-                                <p class="highlight" @click="openEditor(x.item, page)">{{ page.name }}</p>
-                                <p class="sec">{{ page.id }}</p>
-                                <p class="sec">{{ page.createDate }}</p>
-                                <fv-button theme="dark" background="rgba(0, 120, 212, 1)"
-                                    style="width: 35px; height: 35px;" :title="local('Rename')"
-                                    @click="showRenameItemPage(x.item, page)">
+                            <div
+                                v-for="(page, index) in x.item.pages"
+                                :key="index"
+                                class="item"
+                            >
+                                <emoji-callout
+                                    :value="page.emoji"
+                                    :theme="theme"
+                                    style="width: 25px;"
+                                    @insert-emoji="revisePageEmoji(x.item, page, $event)"
+                                ></emoji-callout>
+                                <p
+                                    class="highlight"
+                                    @click="openEditor(x.item, page)"
+                                >{{page.name}}</p>
+                                <p class="sec">{{page.id.split('-').pop()}}</p>
+                                <p class="sec">{{$date(page.createDate)}}</p>
+                                <fv-button
+                                    theme="dark"
+                                    :background="theme === 'dark' ? 'rgba(118, 185, 237, 1)' : 'rgba(0, 98, 158, 1)'"
+                                    style="width: 35px; height: 35px;"
+                                    :title="local('Rename')"
+                                    :is-box-shadow="true"
+                                    @click="showRenameItemPage(x.item, page)"
+                                >
                                     <i class="ms-Icon ms-Icon--Rename"></i>
                                 </fv-button>
-                                <fv-button theme="dark" background="rgba(220, 62, 72, 1)"
-                                    style="width: 35px; height: 35px;" :title="local('Delete')"
-                                    @click="deleteItemPage(x.item.id, page.id)">
+                                <fv-button
+                                    theme="dark"
+                                    :background="theme === 'dark' ? 'rgba(118, 185, 237, 1)' : 'rgba(0, 98, 158, 1)'"
+                                    style="width: 35px; height: 35px;"
+                                    :title="local('Duplicate')"
+                                    :is-box-shadow="true"
+                                    @click="duplicateItemPage(x.item, page)"
+                                >
+                                    <i class="ms-Icon ms-Icon--Copy"></i>
+                                </fv-button>
+                                <fv-button
+                                    theme="dark"
+                                    background="rgba(220, 62, 72, 1)"
+                                    style="width: 35px; height: 35px;"
+                                    :title="local('Delete')"
+                                    :is-box-shadow="true"
+                                    @click="deleteItemPage(x.item.id, page.id)"
+                                >
                                     <i class="ms-Icon ms-Icon--Delete"></i>
                                 </fv-button>
                             </div>
-                            <div class="item" style="display: flex;"
-                                @click="($event) => { currentItem = x.item; show.addItemPage = true }">
+                            <div
+                                class="item"
+                                style="display: flex;"
+                                @click="($event) => {currentItem = x.item; show.addItemPage = true}"
+                            >
                                 <i class="ms-Icon ms-Icon--Add"></i>
-                                <p style="margin-left: 15px;">{{ local("Add Page") }}</p>
+                                <p style="margin-left: 15px;">{{local("Add Page")}}</p>
                             </div>
                         </div>
                     </template>
                     <template v-slot:menu>
                         <div>
                             <span @click="show.addItemPage = true">
-                                <i class="ms-Icon ms-Icon--PageAdd" style="color: rgba(38, 188, 140, 1);"></i>
-                                <p>{{ local("Add Page") }}</p>
+                                <i
+                                    class="ms-Icon ms-Icon--PageAdd"
+                                    style="color: rgba(38, 188, 140, 1);"
+                                ></i>
+                                <p>{{local("Add Page")}}</p>
                             </span>
                             <span @click="reviseItemPdf">
-                                <i class="ms-Icon ms-Icon--PDF" style="color: rgba(220, 62, 72, 1);"></i>
-                                <p>{{ local("Revise PDF") }}</p>
+                                <img
+                                    draggable="false"
+                                    :src="img.pdf"
+                                    alt=""
+                                    style="width: 13px; height: 13px; object-fit: contain;"
+                                >
+                                <p>{{local("Revise PDF")}}</p>
                             </span>
                             <span @click="show.metadata = true">
-                                <i class="ms-Icon ms-Icon--LinkedDatabase" style="color: rgba(229, 173, 70, 1);"></i>
-                                <p>{{ local("Revise Metadata") }}</p>
+                                <img
+                                    draggable="false"
+                                    :src="img.metadata"
+                                    alt=""
+                                    style="width: 13px; height: 13px; object-fit: contain;"
+                                >
+                                <p>{{local("Revise Metadata")}}</p>
                             </span>
-                            <span @click="openFile(`${currentItem.id}`)">
-                                <i class="ms-Icon ms-Icon--FabricFolder" style="color: rgba(229, 173, 70, 1);"></i>
-                                <p>{{ local("Open Folder") }}</p>
+                            <span @click="openFile(currentItem.id)">
+                                <img
+                                    draggable="false"
+                                    :src="img.folder"
+                                    alt=""
+                                    style="width: 13px; height: 13px; object-fit: contain;"
+                                >
+                                <p>{{local("Open Folder")}}</p>
                             </span>
                             <hr>
                             <span @click="show.folder = true">
-                                <i class="ms-Icon ms-Icon--FabricMovetoFolder" style="color: rgba(0, 90, 158, 1);"></i>
-                                <p>{{ local("Copy to Partitions") }}</p>
+                                <i
+                                    class="ms-Icon ms-Icon--FabricMovetoFolder"
+                                    :style="{color: theme === 'dark' ? 'rgba(118, 185, 237, 1)' : 'rgba(0, 90, 158, 1)'}"
+                                ></i>
+                                <p>{{local("Induce to Partitions")}}</p>
+                            </span>
+                            <span @click="addToTransferCarrier">
+                                <i
+                                    class="ms-Icon ms-Icon--Send"
+                                    style="color: rgba(229, 173, 70, 1);"
+                                ></i>
+                                <p>{{local("Add to Transfer Carrier")}}</p>
                             </span>
                             <span @click="show.rename = true">
-                                <i class="ms-Icon ms-Icon--Rename" style="color: rgba(0, 90, 158, 1);"></i>
-                                <p>{{ local("Rename Item") }}</p>
+                                <i
+                                    class="ms-Icon ms-Icon--Rename"
+                                    :style="{color: theme === 'dark' ? 'rgba(118, 185, 237, 1)' : 'rgba(0, 90, 158, 1)'}"
+                                ></i>
+                                <p>{{local("Rename Item")}}</p>
                             </span>
-                            <span v-show="pid !== false" @click="deleteItemsFromPartition">
-                                <i class="ms-Icon ms-Icon--RemoveFrom" style="color: rgba(220, 62, 72, 1);"></i>
-                                <p>{{ local("Remove From Partition") }}</p>
+                            <span
+                                v-show="pid"
+                                @click="removeItemsFromPartition"
+                            >
+                                <i
+                                    class="ms-Icon ms-Icon--RemoveFrom"
+                                    style="color: rgba(220, 62, 72, 1);"
+                                ></i>
+                                <p>{{local("Remove From Partition")}}</p>
                             </span>
-                            <span v-show="pid === false" @click="deleteItem">
-                                <i class="ms-Icon ms-Icon--Delete" style="color: rgba(220, 62, 72, 1);"></i>
-                                <p>{{ local("Delete Item") }}</p>
+                            <span
+                                v-show="!pid"
+                                @click="deleteItem"
+                            >
+                                <i
+                                    class="ms-Icon ms-Icon--Delete"
+                                    style="color: rgba(220, 62, 72, 1);"
+                                ></i>
+                                <p>{{local("Delete Item")}}</p>
                             </span>
                         </div>
                     </template>
                 </main-list>
-                <item-list-empty v-if="filterItems.length === 0"></item-list-empty>
+                <item-list-empty v-if="itemList.length === 0"></item-list-empty>
             </div>
         </div>
-        <add-item :show.sync="show.add"></add-item>
-        <rename-item :value="currentItem" :show.sync="show.rename"></rename-item>
-        <add-item-page :show.sync="show.addItemPage" :item="currentItem"></add-item-page>
-        <rename-item-page :value="currentItemPage" :show.sync="show.renameItemPage" :item="currentItem">
-        </rename-item-page>
-        <metadata-panel v-model="show.metadata" :item="currentItem"></metadata-panel>
-        <folder-window v-model="show.folder" @choose-partitions="copyItemsToPartitions"></folder-window>
+        <add-item
+            :show.sync="show.add"
+            :partitionId="pid"
+            @finished="getItems"
+        ></add-item>
+        <rename-item
+            :value="currentItem"
+            :show.sync="show.rename"
+        ></rename-item>
+        <add-item-page
+            :show.sync="show.addItemPage"
+            :item="currentItem"
+        ></add-item-page>
+        <rename-item-page
+            :value="currentItemPage"
+            :show.sync="show.renameItemPage"
+            :item="currentItem"
+        ></rename-item-page>
+        <metadata-panel
+            v-model="show.metadata"
+            :item="currentItem"
+        ></metadata-panel>
+        <folder-window
+            v-model="show.folder"
+            :title="local('Induce to Partitions')"
+            @choose-partitions="copyItemsToPartitions"
+        ></folder-window>
     </div>
 </template>
 
 <script>
-import addItem from "@/components/home/addItem.vue";
-import renameItem from "@/components/home/renameItem.vue";
-import mainList from "@/components/home/mainList.vue";
-import itemListEmpty from "@/components/general/empty/itemListEmpty.vue";
-import addItemPage from "@/components/home/addItemPage.vue";
-import renameItemPage from "@/components/home/renameItemPage.vue";
-import metadataPanel from "@/components/home/metadataPanel.vue";
-import folderWindow from "@/components/general/folderWindow.vue";
-import emojiCallout from "@/components/general/callout/emojiCallout.vue";
-import { mapMutations, mapState, mapGetters } from "vuex";
-import { Drive, ConflictBehavior } from "msgraphapi"
+import addItem from '@/components/home/addItem.vue';
+import renameItem from '@/components/home/renameItem.vue';
+import mainList from '@/components/home/mainList.vue';
+import itemListEmpty from '@/components/general/empty/itemListEmpty.vue';
+import addItemPage from '@/components/home/addItemPage.vue';
+import renameItemPage from '@/components/home/renameItemPage.vue';
+import metadataPanel from '@/components/home/metadataPanel.vue';
+import folderWindow from '@/components/general/folderWindow.vue';
+import emojiCallout from '@/components/general/callout/emojiCallout.vue';
+import { mapMutations, mapState, mapGetters } from 'vuex';
 
-const path = require("path");
+import pdf from '@/assets/home/pdf.svg';
+import metadata from '@/assets/home/metadata.svg';
+import folder from '@/assets/home/folder.svg';
+import viewer from '@/assets/home/viewer.svg';
+import fabulous from '@/assets/logo.svg';
 
 export default {
     components: {
@@ -165,92 +392,137 @@ export default {
         renameItemPage,
         metadataPanel,
         folderWindow,
-        emojiCallout,
+        emojiCallout
     },
     data() {
         return {
             cmd: [
                 {
-                    name: () => this.local("Add"),
-                    icon: "Add",
-                    iconColor: "rgba(0, 90, 158, 1)",
-                    disabled: () => this.cur_db === null || !this.lock,
+                    name: () => this.local('Add'),
+                    icon: 'Add',
+                    iconColor: () =>
+                        this.theme === 'dark'
+                            ? 'rgba(118, 185, 237, 1)'
+                            : 'rgba(0, 90, 158, 1)',
+                    disabled: () => this.SourceDisabled || !this.lock,
                     func: () => {
                         this.show.add = true;
-                    },
+                    }
                 },
                 {
-                    name: () => this.local("Import"),
-                    icon: "Upload",
-                    iconColor: "rgba(0, 90, 158, 1)",
-                    disabled: () => this.cur_db === null || !this.lock,
-                    func: () => {
-                        this.$barWarning(
-                            this.local("Function is not supported yet."), {
-                            status: 'warning'
-                        }
-                        );
-                    },
+                    name: () => this.local('Import'),
+                    icon: 'Upload',
+                    iconColor: () =>
+                        this.theme === 'dark'
+                            ? 'rgba(118, 185, 237, 1)'
+                            : 'rgba(0, 90, 158, 1)',
+                    disabled: () => this.SourceDisabled || !this.lock,
+                    func: this.importPdf
                 },
                 {
                     name: () => {
                         if (this.editable)
-                            return this.local("Cancel Multi-Selection");
-                        return this.local("Multi-Selection");
+                            return this.local('Cancel Multi-Selection');
+                        return this.local('Multi-Selection');
                     },
-                    icon: "MultiSelect",
-                    iconColor: "rgba(0, 90, 158, 1)",
-                    disabled: () => this.cur_db === null || !this.lock,
+                    icon: 'MultiSelect',
+                    iconColor: () =>
+                        this.theme === 'dark'
+                            ? 'rgba(118, 185, 237, 1)'
+                            : 'rgba(0, 90, 158, 1)',
+                    disabled: () => this.SourceDisabled || !this.lock,
                     func: () => {
                         this.editable ^= true;
-                    },
+                        if (!this.editable) this.currentChoosen = [];
+                    }
                 },
                 {
-                    name: () => this.local("Copy to Partitions"),
-                    icon: "FabricMovetoFolder",
-                    iconColor: "rgba(0, 90, 158, 1)",
+                    name: () => this.local('Induce to Partitions'),
+                    icon: 'FabricMovetoFolder',
+                    iconColor: () =>
+                        this.theme === 'dark'
+                            ? 'rgba(118, 185, 237, 1)'
+                            : 'rgba(0, 90, 158, 1)',
                     disabled: () =>
                         this.currentChoosen.length === 0 || !this.lock,
                     func: () => {
                         this.show.folder = true;
-                    },
+                    }
                 },
                 {
-                    name: () => this.local("Remove From Partition"),
-                    icon: "RemoveFrom",
-                    iconColor: "rgba(220, 62, 72, 1)",
+                    name: () => this.local('Add to Transfer Carrier'),
+                    icon: 'Send',
+                    iconColor: 'rgba(229, 173, 70, 1)',
+                    disabled: () =>
+                        this.currentChoosen.length === 0 || !this.lock,
+                    func: () => {
+                        this.addToTransferCarrier();
+                    }
+                },
+                {
+                    name: () => this.local('Remove From Partition'),
+                    icon: 'RemoveFrom',
+                    iconColor: 'rgba(220, 62, 72, 1)',
+                    show: () =>
+                        this.currentChoosen.length > 0 && this.lock && this.pid,
                     disabled: () =>
                         this.currentChoosen.length === 0 ||
                         !this.lock ||
                         this.pid === false,
-                    func: this.deleteItemsFromPartition,
+                    func: this.removeItemsFromPartition
                 },
                 {
-                    name: () => this.local("Delete"),
-                    icon: "Delete",
-                    iconColor: "rgba(220, 62, 72, 1)",
+                    name: () => this.local('Delete'),
+                    icon: 'Delete',
+                    iconColor: 'rgba(220, 62, 72, 1)',
+                    show: () =>
+                        !(
+                            this.currentChoosen.length === 0 ||
+                            !this.lock ||
+                            this.pid
+                        ),
                     disabled: () =>
                         this.currentChoosen.length === 0 ||
                         !this.lock ||
-                        this.pid !== false,
-                    func: this.deleteItems,
-                },
+                        this.pid,
+                    func: this.deleteItems
+                }
             ],
-            sortKey: {},
+            sortKey: {
+                key: 'createDate',
+                text: () => this.local('Create Date')
+            },
             sortOptions: [
-                { key: "name", text: () => this.local("Name") },
-                { key: "title", text: () => this.local("Title") },
-                { key: "publisher", text: () => this.local("Publisher") },
-                { key: "createDate", text: () => this.local("Create Date") },
-                { key: "year", text: () => this.local("Year") },
+                { key: 'name', text: () => this.local('Name') },
+                { key: 'metadata.title', text: () => this.local('Title') },
+                {
+                    key: 'metadata.publisher',
+                    text: () => this.local('Publisher')
+                },
+                { key: 'createDate', text: () => this.local('Create Date') },
+                { key: 'metadata.year', text: () => this.local('Year') }
             ],
             sortDesc: 1,
             editable: false,
-            filterItems: [],
+            partitionInfo: {
+                id: '',
+                name: ''
+            },
+            itemList: [],
             currentItem: {},
             currentChoosen: [],
             currentItemPage: {},
-            currentSearch: "",
+            currentSearch: {
+                debounce: '',
+                value: ''
+            },
+            img: {
+                pdf: pdf,
+                metadata: metadata,
+                folder: folder,
+                viewer: viewer,
+                fabulous: fabulous
+            },
             show: {
                 add: false,
                 rename: false,
@@ -258,205 +530,212 @@ export default {
                 renameItemPage: false,
                 metadata: false,
                 folder: false,
+                pdfImporter: false,
+                chooseViewer: true
             },
-            lock: true,
+            lock: true
         };
     },
     watch: {
         $route() {
-            this.itemsEnsureFolder();
-            this.refreshFilterItems();
+            this.editable = false;
+            this.getPartitionInfo();
+            this.getItems();
         },
-        items() {
-            this.refreshFilterItems();
+        data_index() {
+            this.editable = false;
+            this.getPartitionInfo();
+            this.getItems();
+        },
+        sortKey() {
+            this.getItems();
+        },
+        sortDesc() {
+            this.getItems();
+        },
+        'currentSearch.debounce'() {
+            this.getItems();
+        },
+        counter() {
+            this.getItems();
         }
     },
     computed: {
         ...mapState({
-            /**
-             * @returns {Drive}
-             */
-            root: state => state.root,
-            data_path: (state) => state.data_path,
-            data_index: (state) => state.data_index,
-            items: (state) => state.data_structure.items,
-            groups: (state) => state.data_structure.groups,
-            partitions: (state) => state.data_structure.partitions,
-            theme: (state) => state.theme,
+            data_path: (state) => state.config.data_path,
+            data_index: (state) => state.config.data_index,
+            value: (state) => state.pdfImporter.value,
+            item: (state) => state.pdfImporter.item,
+            pdf_importer: (state) => state.pdfImporter.pdf_importer,
+            counter: (state) => state.pdfImporter.counter,
+            itemCarrier: (state) => state.itemCarrier,
+            mode: (state) => state.pdfImporter.mode,
+            theme: (state) => state.config.theme
         }),
-        ...mapGetters(["local", "cur_db"]),
-        v() {
-            return this;
-        },
+        ...mapGetters(['local', 'currentDataPath', 'currentDataPathItem']),
         pid() {
-            if (this.$route.params.id === undefined) return false;
+            if (!this.$route.params.id) return null;
             return this.$route.params.id;
         },
-        pname() {
-            if (this.pid === false) return "Unknown";
-            let t = [].concat(this.groups);
-            let partitions = [];
-            for (let i = 0; i < t.length; i++) {
-                if (t[i].groups) t = t.concat(t[i].groups);
-                if (t[i].partitions)
-                    partitions = partitions.concat(t[i].partitions);
-            }
-            partitions = partitions.concat(this.partitions);
-            for (let i = 0; i < partitions.length; i++) {
-                if (partitions[i].id === this.pid) {
-                    return partitions[i].name;
-                }
-            }
-            return "Unknown";
+        SourceDisabled() {
+            return !this.currentDataPath;
         },
-        filterItemsId() {
-            if (this.pid === false) return true;
-            let t = [].concat(this.groups);
-            let partitions = [];
-            let result = [];
-            for (let i = 0; i < t.length; i++) {
-                if (t[i].groups) t = t.concat(t[i].groups);
-                if (t[i].partitions)
-                    partitions = partitions.concat(t[i].partitions);
-            }
-            partitions = partitions.concat(this.partitions);
-            for (let i = 0; i < partitions.length; i++) {
-                if (partitions[i].id === this.pid) {
-                    result = JSON.parse(JSON.stringify(partitions[i].items));
-                    break;
-                }
-            }
-            return result;
-        },
+        isRemote() {
+            return this.currentDataPathItem && !this.currentDataPathItem.local;
+        }
     },
     mounted() {
-        this.itemsEnsureFolder();
-        this.refreshFilterItems();
+        this.getPartitionInfo();
+        this.getItems();
     },
     methods: {
         ...mapMutations({
-            reviseDS: "reviseDS",
-            reviseEditor: "reviseEditor",
-            toggleEditor: "toggleEditor",
+            reviseEditor: 'reviseEditor',
+            revisePdfImporter: 'revisePdfImporter',
+            reviseItemCarrier: 'reviseItemCarrier',
+            toggleEditor: 'toggleEditor'
         }),
-        refreshFilterItems() {
-            if (this.filterItemsId === true) this.filterItems = this.items;
-            else {
-                let result = [];
-                this.items.forEach((el, idx) => {
-                    if (this.filterItemsId.indexOf(el.id) > -1)
-                        result.push(this.items[idx]);
+        getPartitionInfo() {
+            if (!this.pid) {
+                this.partitionInfo = {
+                    id: 'all',
+                    name: this.local('All')
+                };
+                return;
+            }
+            this.$auto.AcademicController.getPartition(
+                this.currentDataPath,
+                this.pid
+            )
+                .then((res) => {
+                    if (res.status === 'success') {
+                        this.partitionInfo = res.data;
+                    } else {
+                        this.$barWarning(res.message, {
+                            status: 'warning'
+                        });
+                    }
+                })
+                .catch((res) => {
+                    this.$barWarning(res.message, {
+                        status: 'error'
+                    });
                 });
-                this.filterItems = result;
-            }
         },
-        async itemsEnsureFolder() {
-            if (!this.cur_db || this.data_index == -1) return;
-            this.lock = false;
-            if (this.root !== null) {
-                try {
-                    await this.root.path().createListAsync({
-                        name: "root",
-                        conflict: ConflictBehavior.Fail
+        getItems() {
+            if (this.SourceDisabled) return;
+            let pid = this.pid;
+            if (this.isRemote && !pid) pid = this.currentDataPath;
+            let sortDesc = this.sortDesc;
+            if (this.isRemote && sortDesc === -1) sortDesc = false;
+            if (!this.currentSearch.debounce) {
+                this.$auto.AcademicController.getItems(
+                    this.currentDataPath,
+                    pid,
+                    -1,
+                    0,
+                    this.sortKey.key,
+                    sortDesc
+                )
+                    .then((res) => {
+                        if (res.status === 'success') {
+                            res.data.forEach((el) => {
+                                el.choosen = false;
+                            });
+                            this.itemList = res.data;
+                        } else {
+                            this.$barWarning(res.message, {
+                                status: 'warning'
+                            });
+                        }
                     })
-                    await this.root.path("root").createListAsync({
-                        name: "items",
-                        conflict: ConflictBehavior.Fail
+                    .catch((res) => {
+                        this.$barWarning(res.message, {
+                            status: 'error'
+                        });
+                    });
+            } else
+                this.$auto.AcademicController.getSearchItems(
+                    this.currentDataPath,
+                    this.pid,
+                    this.currentSearch.debounce,
+                    50,
+                    0,
+                    this.sortKey.key,
+                    sortDesc
+                )
+                    .then((res) => {
+                        if (res.status === 'success') {
+                            res.data.forEach((el) => {
+                                el.choosen = false;
+                            });
+                            this.itemList = res.data;
+                        } else {
+                            this.$barWarning(res.message, {
+                                status: 'warning'
+                            });
+                        }
                     })
-                } catch {
-
-                } finally {
-                    try {
-                        await this.root.path("root/items").getAsync()
-                        this.lock = true;
-                    }
-                    catch {
-                    }
-                }
-            }
+                    .catch((res) => {
+                        this.$barWarning(res.message, {
+                            status: 'error'
+                        });
+                    });
         },
         deleteItem() {
             if (!this.currentItem.id || !this.lock) return;
             this.$infoBox(this.local(`Are you sure to delete this item?`), {
-                status: "error",
-                title: this.local("Delete Item"),
-                confirmTitle: this.local("Confirm"),
-                cancelTitle: this.local("Cancel"),
+                status: 'error',
+                title: this.local('Delete Item'),
+                confirmTitle: this.local('Confirm'),
+                cancelTitle: this.local('Cancel'),
                 theme: this.theme,
                 confirm: async () => {
-                    console.log("delete")
                     this.lock = false;
-                    let index = this.items.indexOf(
-                        this.items.find((it) => it.id === this.currentItem.id)
-                    );
-                    this.items.splice(index, 1);
-                    this.reviseDS({
-                        $index: this.data_index,
-                        items: this.items,
+                    await this.$auto.AcademicController.deleteItem(
+                        this.currentDataPath,
+                        this.currentItem.id
+                    ).then((res) => {
+                        if (res.code !== 200)
+                            this.$barWarning(res.message, {
+                                status: 'warning'
+                            });
                     });
-                    await this.root.clone().path(`root/items/${this.currentItem.id}`).delAsync()
-                    this.delItemsFromPs([this.currentItem.id]);
                     this.lock = true;
-                    console.log(this.currentItem.id)
                 },
-                cancel: () => { },
+                cancel: () => {}
             });
         },
         deleteItems() {
             if (!this.currentChoosen || !this.lock) return;
             this.$infoBox(this.local(`Are you sure to delete these items?`), {
-                status: "error",
-                title: this.local("Delete Items"),
-                confirmTitle: this.local("Confirm"),
-                cancelTitle: this.local("Cancel"),
+                status: 'error',
+                title: this.local('Delete Items'),
+                confirmTitle: this.local('Confirm'),
+                cancelTitle: this.local('Cancel'),
                 theme: this.theme,
                 confirm: async () => {
                     this.lock = false;
-                    let ids = [];
-                    let copy = JSON.parse(JSON.stringify(this.currentChoosen));
-                    for (let el of copy) {
-                        ids.push(el.id);
-                        let index = this.items.indexOf(
-                            this.items.find((it) => it.id === el.id)
-                        );
-                        this.items.splice(index, 1);
-                        this.reviseDS({
-                            $index: this.data_index,
-                            items: this.items,
+                    let ids = this.currentChoosen.map((el) => el.id);
+                    let res = await this.$auto.AcademicController.deleteItems(
+                        this.currentDataPath,
+                        ids
+                    );
+                    if (res.code !== 200)
+                        this.$barWarning(res.message, {
+                            status: 'warning'
                         });
-                        await this.root.clone().path(`root/items/${el.id}`).delAsync()
-                        this.delItemsFromPs(ids);
-                        this.currentChoosen = [];
-                        this.lock = true;
-                    }
+                    this.getItems();
+                    this.currentChoosen = [];
+                    this.lock = true;
                 },
-                cancel: () => { },
-            });
-        },
-        delItemsFromPs(ids) {
-            if (ids.length === 0) return;
-            let t = [].concat(this.groups);
-            let partitions = [];
-            for (let i = 0; i < t.length; i++) {
-                if (t[i].groups) t = t.concat(t[i].groups);
-                if (t[i].partitions)
-                    partitions = partitions.concat(t[i].partitions);
-            }
-            partitions = partitions.concat(this.partitions);
-            partitions.forEach((p, idx) => {
-                for (let i = 0; i < ids.length; i++) {
-                    let index = p.items.indexOf(ids[i]);
-                    if (index > -1) {
-                        p.items.splice(index, 1);
-                    }
-                }
-                partitions[idx].items = p.items;
+                cancel: () => {}
             });
         },
         reviseItemPdf() {
             this.revisePdfImporter({
-                mode: "item",
-                item: this.currentItem,
+                mode: 'item',
+                item: this.currentItem
             });
             setTimeout(() => {
                 this.pdf_importer.inputInspectClick();
@@ -464,7 +743,7 @@ export default {
         },
         importPdf() {
             this.revisePdfImporter({
-                mode: "import",
+                mode: 'import'
             });
             setTimeout(() => {
                 this.pdf_importer.inputInspectClick();
@@ -472,100 +751,142 @@ export default {
         },
         openEditor(item, page) {
             this.reviseEditor({
-                type: "item",
+                type: 'item',
                 item: item,
                 target: page,
                 scrollTop: 0,
+                displayMode: 0,
                 history: []
             });
             this.toggleEditor(true);
         },
-        async openFile(fileName) {
-            let url = path.join(
-                this.data_path[this.data_index],
-                "root/items",
-                fileName
-            );
-            let res = await this.cur_db.getFileInfo(url);
-            this.$Jump(res.webUrl);
+        openFile(itemid, fileid, type = 'pdf') {
+            if (this.isRemote) {
+                if (type !== 'pdf') return;
+                if (
+                    !fileid &&
+                    itemid.indexOf('/') > -1 &&
+                    itemid.indexOf('.') > -1
+                ) {
+                    fileid = itemid.split('/')[1];
+                    fileid = fileid.split('.')[0];
+                    itemid = itemid.split('/')[0];
+                }
+                this.$api.AcademicController.openItemFile(
+                    this.currentDataPath,
+                    itemid,
+                    fileid
+                ).then((res) => {
+                    window.open(this.$server + res.data);
+                });
+            } else {
+                this.$local_api.AcademicController.openItemFile(
+                    this.currentDataPath,
+                    itemid,
+                    fileid,
+                    type
+                );
+            }
         },
-        copyItemsToPartitions(partitions_id) {
-            let t = [].concat(this.groups);
-            let partitions = [];
-            let result = [];
-            for (let i = 0; i < t.length; i++) {
-                if (t[i].groups) t = t.concat(t[i].groups);
-                if (t[i].partitions)
-                    partitions = partitions.concat(t[i].partitions);
+        openPDF(item, mode = 'outside') {
+            if (mode === 'inside') {
+                this.reviseEditor({
+                    type: 'item',
+                    item: item,
+                    target: item.pages.length > 0 ? item.pages[0] : null,
+                    scrollTop: 0,
+                    displayMode: 1,
+                    history: []
+                });
+                this.toggleEditor(true);
+            } else {
+                this.openFile(item.id, item.pdf, 'pdf');
             }
-            partitions = partitions.concat(this.partitions);
-            for (let i = 0; i < partitions.length; i++) {
-                if (partitions_id.indexOf(partitions[i].id) > -1)
-                    result.push(partitions[i]);
-            }
-            let choosen = this.currentChoosen;
+        },
+        async copyItemsToPartitions(partitions) {
+            let choosen = [].concat(this.currentChoosen);
             if (
-                this.currentChoosen.find(
-                    (it) => it.id === this.currentItem.id
-                ) === undefined
+                this.currentItem.id &&
+                !this.currentChoosen.find((it) => it.id === this.currentItem.id)
             )
                 choosen.push(this.currentItem);
             if (choosen.length === 0) return;
-            result.forEach((p, idx) => {
-                for (let i = 0; i < choosen.length; i++) {
-                    if (
-                        p.items.find((it) => it === choosen[i].id) !== undefined
-                    )
-                        continue;
-                    p.items.push(choosen[i].id);
-                }
-                result[idx].items = p.items;
-            });
-            this.currentChoosen = [];
-            this.reviseDS({
-                $index: this.data_index,
-                groups: this.groups,
-                partitions: this.partitions,
-            });
-        },
-        deleteItemsFromPartition() {
-            if (this.pid === false) return;
-            let t = [].concat(this.groups);
-            let partitions = [];
-            let target = {};
-            for (let i = 0; i < t.length; i++) {
-                if (t[i].groups) t = t.concat(t[i].groups);
-                if (t[i].partitions)
-                    partitions = partitions.concat(t[i].partitions);
-            }
-            partitions = partitions.concat(this.partitions);
-            for (let i = 0; i < partitions.length; i++) {
-                if (partitions[i].id === this.pid) {
-                    target = partitions[i];
+            let ids = choosen.map((el) => el.id);
+            for (let partition of partitions) {
+                let partitionid = partition.id;
+                let res =
+                    await this.$auto.AcademicController.addItemsToPartition(
+                        this.currentDataPath,
+                        partitionid,
+                        ids
+                    );
+                if (res.status !== 'success') {
+                    this.$barWarning(res.message, {
+                        status: 'warning'
+                    });
                     break;
                 }
             }
-            let choosen = this.currentChoosen;
+            for (let item of this.itemList) {
+                item.choosen = false;
+                let index = this.itemList.indexOf(item);
+                this.$set(this.itemList, index, item);
+            }
+            this.currentChoosen = [];
+            this.editable = false;
+        },
+        addToTransferCarrier() {
+            let items = this.currentChoosen;
+            if (items.length === 0) {
+                items = [this.currentItem];
+            }
+            for (let i = 0; i < items.length; i++) {
+                let item = JSON.parse(JSON.stringify(items[i]));
+                if (
+                    !this.itemCarrier.itemsX.find(
+                        (it) => it.item.id === item.id
+                    )
+                ) {
+                    this.itemCarrier.itemsX.push({
+                        uri: this.currentDataPath,
+                        item,
+                        choosen: true
+                    });
+                }
+            }
+            this.reviseItemCarrier({ itemsX: this.itemCarrier.itemsX });
+        },
+        removeItemsFromPartition() {
+            if (this.pid === false) return;
+            let choosen = [].concat(this.currentChoosen);
             if (
-                this.currentChoosen.find(
-                    (it) => it.id === this.currentItem.id
-                ) === undefined
+                this.currentItem.id &&
+                !this.currentChoosen.find((it) => it.id === this.currentItem.id)
             )
                 choosen.push(this.currentItem);
             if (choosen.length === 0) return;
-            for (let i = 0; i < choosen.length; i++) {
-                let index = target.items.indexOf(choosen[i].id);
-                if (index > -1) {
-                    target.items.splice(index, 1);
-                }
-            }
-            this.currentChoosen = [];
-            this.reviseDS({
-                $index: this.data_index,
-                groups: this.groups,
-                partitions: this.partitions,
-            });
-            this.refreshFilterItems();
+            let ids = choosen.map((el) => el.id);
+            this.$auto.AcademicController.removeItemsFromPartition(
+                this.currentDataPath,
+                this.pid,
+                ids
+            )
+                .then((res) => {
+                    if (res.status === 'success') {
+                        this.currentChoosen = [];
+                        this.editable = false;
+                        this.getItems();
+                    } else {
+                        this.$barWarning(res.message, {
+                            status: 'warning'
+                        });
+                    }
+                })
+                .catch((res) => {
+                    this.$barWarning(res.message, {
+                        status: 'error'
+                    });
+                });
         },
         showRenameItemPage(item, page) {
             this.currentItem = item;
@@ -576,58 +897,89 @@ export default {
             this.currentItem = item;
             this.show.metadata = true;
         },
-        reviseItemEmoji(item, emoji) {
-            if (!this.cur_db || !this.items) return;
-            let _item = this.items.find((it) => it.id === item.id);
-            _item.emoji = emoji;
+        async reviseItemEmoji(item, emoji) {
             item.emoji = emoji;
-            this.reviseDS({
-                $index: this.data_index,
-                items: this.items,
-            });
+            let res = await this.$auto.AcademicController.updateItem(
+                this.currentDataPath,
+                item
+            );
+            if (res.status !== 'success') {
+                this.$barWarning(res.message, {
+                    status: 'warning'
+                });
+            }
         },
-        revisePageEmoji(item, page, emoji) {
-            if (!this.cur_db || !this.items) return;
-            let _item = this.items.find(it => it.id === item.id);
-            let _page = _item.pages.find(it => it.id === page.id);
-            _page.emoji = emoji;
+        async revisePageEmoji(item, page, emoji) {
+            if (!item) return;
             page.emoji = emoji;
-            this.reviseDS({
-                $index: this.data_index,
-                items: this.items
-            });
-            this.thisShow = false;
+            let res = await this.$auto.AcademicController.updateItemPage(
+                this.currentDataPath,
+                item.id,
+                page
+            );
+            if (res.status !== 'success') {
+                this.$barWarning(res.message, {
+                    status: 'error'
+                });
+            }
+        },
+        async duplicateItemPage(item, page) {
+            if (!item) return;
+            let res = await this.$auto.AcademicController.duplicateItemPage(
+                this.currentDataPath,
+                item.id,
+                page.id
+            );
+            if (res.status !== 'success') {
+                this.$barWarning(res.message, {
+                    status: 'error'
+                });
+            } else {
+                item.pages.push(res.data);
+            }
         },
         async deleteItemPage(itemId, pageId) {
             this.$infoBox(this.local(`Are you sure to delete this page?`), {
-                status: "error",
-                title: this.local("Delete Page"),
-                confirmTitle: this.local("Confirm"),
-                cancelTitle: this.local("Cancel"),
+                status: 'error',
+                title: this.local('Delete Page'),
+                confirmTitle: this.local('Confirm'),
+                cancelTitle: this.local('Cancel'),
                 theme: this.theme,
                 confirm: async () => {
-                    let item = this.items.find((it) => it.id === itemId);
-                    let index = item.pages.indexOf(pageId);
-                    item.pages.splice(index, 1);
-                    await this.reviseDS({
-                        $index: this.data_index,
-                        items: this.items,
-                    });
-                    await this.root.clone().path(`root/items/${item.id}/${pageId}.json`).delAsync()
+                    await this.$auto.AcademicController.deleteItemPage(
+                        this.currentDataPath,
+                        itemId,
+                        pageId
+                    )
+                        .then(() => {
+                            let item = this.itemList.find(
+                                (el) => el.id === itemId
+                            );
+                            item.pages = item.pages.filter(
+                                (el) => el.id !== pageId
+                            );
+                        })
+                        .catch((res) => {
+                            if (res.message) {
+                                this.$barWarning(res.message, {
+                                    status: 'error'
+                                });
+                            }
+                        });
                 },
-                cancel: () => { },
+                cancel: () => {}
             });
-        },
-    },
+        }
+    }
 };
 </script>
 
 <style lang="scss">
-.ikfb-home-container {
+.fabulous-home-container {
     position: relative;
     width: 100%;
     height: 100%;
-    background: rgba(245, 245, 245, 1);
+    background: rgba(245, 245, 245, 0.9);
     display: flex;
     flex-direction: column;
     overflow: hidden;
@@ -635,7 +987,7 @@ export default {
     z-index: 1;
 
     &.dark {
-        background: rgba(36, 36, 36, 1);
+        background: rgba(36, 36, 36, 0.9);
 
         .s-title {
             color: whitesmoke;
@@ -644,7 +996,7 @@ export default {
         .m-home-block {
             .row {
                 &.main-table {
-                    background: black;
+                    background: rgba(0, 0, 0, 0.6);
                 }
 
                 .row-item-info {
@@ -707,7 +1059,7 @@ export default {
                 flex: 1;
                 margin: 8px 12px;
                 padding: 0px;
-                background: white;
+                background: rgba(255, 255, 255, 0.6);
                 border-radius: 5px;
                 box-shadow: 0px 3px 8px rgba(0, 0, 0, 0.1);
                 overflow: hidden;
@@ -751,11 +1103,10 @@ export default {
                         border: rgba(200, 200, 200, 0.1) solid thin;
                         border-radius: 8px;
                         box-sizing: border-box;
-                        grid-template-columns: 50px 160px 90px 150px 50px 1fr;
+                        grid-template-columns: 50px 160px 90px 150px 50px 50px 1fr;
                         display: grid;
                         align-items: center;
                         cursor: pointer;
-                        overflow-x: auto;
                         user-select: none;
 
                         &:hover {

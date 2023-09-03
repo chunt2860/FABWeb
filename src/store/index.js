@@ -1,179 +1,132 @@
 import Vue from "vue";
 import Vuex from "vuex";
-import { ConflictBehavior, Drive, GraphAPI } from "msgraphapi"
+
+// entry
+import User from "./User";
+import Theme from "./Theme";
+import config from "./Config";
 
 Vue.use(Vuex);
 
 export default new Vuex.Store({
     state: {
-        // config //
-        init_status: true,
-        data_path: [],
-        data_index: -1,
-        language: 'en',
-        theme: 'light',
-        // OneDrive //
-        /**
-         * @type {GraphAPI}
-         */
-        graphAPI: null,
-        /**
-         * @type {Drive}
-         */
-        root: null,
-        userInfo: null,
-        progress: 0,
-        // ds //
-        data_structure: {
-            id: null,
-            name: null,
-            groups: [],
-            partitions: [],
-            items: [],
-            templates: [],
-            path: null,
-            createDate: null,
-        },
-        //
         editor: {
-            show: false,
-            type: null,
-            item: null,
-            target: null,
-            scrollTop: 0,
+            show: false, // 显示编辑器
+            type: null, // 编辑器操作类型 item 或 template
+            item: null, // 当前绑定的item
+            target: null, // 当前绑定的page
+            scrollTop: 0, // 当前编辑器滚动条位置
+            displayMode: 0, // 当前编辑器显示模式 0: 笔记 1: PDF 2: 双栏
+            unsave: false, // 当前未保存
+            targetContent: {
+                type: "doc",
+                content: []
+            }, // 当前绑定的page内容(Json格式), 显示未保存内容
+            pdfNoteInfo: {
+                guid: "",
+                version: ""
+            }, // 当前绑定的pdfNote信息
             history: []
         },
+        //
+        pdfImporter: {
+            value: false,
+            item: null,
+            mode: "item",
+            pdf_importer: null,
+            df: [],
+            counter: 0
+        },
+        //
+        itemCarrier: {
+            itemsX: []
+        },
+        //
         window: {
             width: 0,
             height: 0,
-            mobileDisplay: 768
+            mobileDisplay: 1024
         },
-        dbList: [],
+        progress: 0,
         i18n: {}
     },
     mutations: {
-        setGraphAPI(state, graphAPI) {
-            state.graphAPI = graphAPI;
-        },
-        setRootAPI(state, root) {
-            state.root = root;
-        },
-        reviseConfig(state, obj) {
-            for (let key in obj) {
-                if (key === 'v' || state[key] === undefined)
-                    continue;
-                state[key] = obj[key];
-                // obj.v.$config_db.set(key, state[key]).write();
-                this.commit('saveLocalStorage');
-            }
-        },
-        reviseDS(state, obj) {
-            for (let key in obj) {
-                if (key === '$index' || state.data_structure[key] === undefined)
-                    continue;
-                state.data_structure[key] = obj[key];
-                // state.dbList[obj.$index].set(key, state.data_structure[key]).write();
-            }
-             // 应该经过四个部分——上锁，版本对比（需要保存上一个版本副本），修改，释放锁
-            // TODO: 版本控制  
-            if (state.root !== null) {
-                // 创建锁文件
-                const lockFile = new File([], "~$data_structure.json", {
-                    type: "application/json"
-                })
-                state.root.clone().path(lockFile.name).uploadAsync({
-                    file: lockFile,
-                    conflict: ConflictBehavior.Fail
-                }).then(() => {
-                    const file = new File([JSON.stringify(state.data_structure)], "data_structure.json", {
-                        type: "application/json"
-                    })
-                    state.root.clone().path(file.name).uploadAsync({
-                        file,
-                        conflict: ConflictBehavior.Replace
-                    }).then(()=>{
-                        state.root.clone().path(lockFile.name).delAsync()
-                    })
-                })
-            }
-        },
-        reviseData(state, obj) {
-            for (let key in obj) {
-                if (state[key] === undefined)
-                    continue;
-                state[key] = obj[key];
-            }
-        },
-        reviseEditor(state, obj) {
-            for (let key in obj) {
-                if (state.editor[key] === undefined)
-                    continue;
-                state.editor[key] = obj[key];
-            }
-        },
-        reviseI18N(state, i18n) {
-            state.i18n = i18n
-        },
         setWindowSize(state, obj) {
             state.window.width = obj.width;
             state.window.height = obj.height;
         },
-        saveLocalStorage(state) {
-            localStorage.setItem("configCache", JSON.stringify({
-                init_status: state.init_status,
-                data_path: state.data_path,
-                data_index: state.data_index,
-                language: state.language,
-                theme: state.theme,
-            }));
-        },
-        getLocalStorage(state) {
-            let configCache = localStorage.getItem("configCache");
-            if (configCache) {
-                let config = JSON.parse(configCache);
-                state.init_status = config.init_status;
-                state.data_path = config.data_path;
-                state.data_index = config.data_index;
-                state.language = config.language;
-                state.theme = config.theme;
+        reviseEditor(state, obj) {
+            for (let key in obj) {
+                if (!Object.prototype.hasOwnProperty.call(state.editor, key))
+                    continue;
+                state.editor[key] = obj[key];
             }
         },
-        cleanLocalStorage() {
-            localStorage.removeItem("configCache");
-        },
-        toggleTheme(state, v) {
-            if (state.theme == 'light') {
-                state.theme = 'dark'
-            } else {
-                state.theme = 'light'
+        revisePdfImporter(state, obj) {
+            for (let key in obj) {
+                if (!Object.prototype.hasOwnProperty.call(state.pdfImporter, key))
+                    continue;
+                state.pdfImporter[key] = obj[key];
             }
-            if (v)
-                console.log(state.theme);
-            // v.$config_db.set('theme', state.theme).write();
-            document.querySelector('meta[name="theme-color"]').setAttribute('content', state.theme === 'light' ? 'rgba(245, 245, 245, 1)' : 'rgba(36, 36, 36, 1)');
-            this.commit('saveLocalStorage');
+        },
+        reviseItemCarrier(state, obj) {
+            for (let key in obj) {
+                if (!Object.prototype.hasOwnProperty.call(state.itemCarrier, key))
+                    continue;
+                state.itemCarrier[key] = obj[key];
+            }
+        },
+        reviseProgress(state, obj) {
+            state.progress = obj;
+        },
+        reviseI18N(state, i18n) {
+            state.i18n = i18n
         },
         toggleEditor(state, status) {
             state.editor.show = status;
+        },
+        refreshAutoAPI(state) {
+            let isLocal = true;
+            if (state.config.data_path[state.config.data_index])
+                isLocal = state.config.data_path[state.config.data_index].local;
+            let dataPathItem = state.config.data_path.find(item => item.path === state.config.data_index);
+            if (dataPathItem)
+                isLocal = dataPathItem.local;
+            if (isLocal) Vue.prototype.$auto = Vue.prototype.$local_api;
+            else Vue.prototype.$auto = Vue.prototype.$api;
         }
     },
-    actions: {},
+    actions: {
+        async toggleTheme(context) {
+            const state = context.state;
+            if (state.config.theme == 'light') {
+                state.config.theme = 'dark'
+            } else {
+                state.config.theme = 'light'
+            }
+            await context.dispatch("config/reviseConfig", state.config);
+        },
+        async reviseConfig(context, obj) {
+            context.dispatch("config/reviseConfig", obj);
+        }
+    },
     getters: {
         local: state => text => {
             let result = state.i18n[text];
             if (!result)
                 return text;
-            return result[state.language];
+            return result[state.config.language];
         },
-        cur_db: state => {
-            if (state.data_index < 0)
-                return null;
-            if (!state.dbList[state.data_index])
-                return null;
-            return state.dbList[state.data_index];
+        currentDataPathItem: state => {
+            return state.config.dataPathItem;
+        },
+        currentDataPath: state => {
+            return state.config.dataPathItem.path;
         }
     },
     modules: {
-
+        User,
+        Theme,
+        config
     }
 });

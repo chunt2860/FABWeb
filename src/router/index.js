@@ -19,6 +19,16 @@ const routes = [
         component: () => AsyncLoad(import("@/views/home"))
     },
     {
+        path: "/notebook/:path",
+        name: "NoteBook",
+        component: () => AsyncLoad(import("@/views/notebook"))
+    },
+    {
+        path: "/notebook/remote/:path",
+        name: "NoteBook",
+        component: () => AsyncLoad(import("@/views/notebook"))
+    },
+    {
         path: "/templates",
         name: "Templates",
         component: () => AsyncLoad(import("@/views/templates"))
@@ -36,7 +46,7 @@ const routes = [
 ];
 
 const router = new VueRouter({
-    mode: "hash",
+    mode: "history",
     base: process.env.BASE_URL,
     routes
 });

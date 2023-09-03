@@ -1,11 +1,26 @@
 export const config = {
+    configId: null,
     init_status: true,
     data_path: [],
     data_index: -1,
     language: "en",
+    autoSave: false,
+    lastLocalPath: "",
+    editorExpandContent: false,
+    editorSplitRatio: 0.5,
+    editorShowNav: true,
+    activeSystemMode: 'both', // ds, notebook, both
+    dynamicEffect: true,
+    watchAllExtensions: false,
+    themeColorList: [],
     theme: "light"
 }
 
+export const data_path_item = {
+    path: null,
+    shared: false,
+    local: true
+}
 
 export const data_structure = {
     id: null,
@@ -22,16 +37,19 @@ export const group = {
     id: null,
     name: null,
     emoji: null,
-    groups: [],
+    groups: [], // deprecated in new version
+    parent: null,
     partitions: [],
-    createDate: null
+    createDate: null,
+    updateDate: null
 }
 export const partition = {
     id: null,
     name: null,
     emoji: null,
     items: [], // only item id
-    createDate: null
+    createDate: null,
+    updateDate: null
 }
 
 export const item = {
@@ -77,4 +95,15 @@ export const author = {
     first: null,
     last: null,
     sequence: null
+}
+
+export const fabulous_notebook = {
+    fabulous_notebook: true,
+    title: null,
+    description: null,
+    banner: null,
+    content: null,
+    author: [],
+    createDate: null,
+    updateDate: null
 }

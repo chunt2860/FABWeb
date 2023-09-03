@@ -1,31 +1,81 @@
 <template>
-    <float-window-base v-model="thisShow" :title="local('Add Item')" :theme="theme">
+    <float-window-base
+        v-model="thisShow"
+        :title="local('Add Item')"
+        :theme="theme"
+    >
         <template v-slot:content>
             <div class="w-p-block">
-                <p class="w-title">{{ local('Item Name') }}</p>
-                <fv-text-box v-model="name" :placeholder="local('Input item name...')" :theme="theme" :font-size="18"
-                    :font-weight="'bold'" underline :focus-border-color="'rgba(123, 139, 209, 1)'" :is-box-shadow="true"
-                    style="width: 100%; height: 60px; margin-top: 15px;" @keyup.enter="add"></fv-text-box>
+                <p class="w-title">{{local('Item Name')}}</p>
+                <fv-text-box
+                    v-model="name"
+                    :placeholder="local('Input item name...')"
+                    :theme="theme"
+                    :font-size="18"
+                    :font-weight="'bold'"
+                    underline
+                    :border-color="'rgba(123, 139, 209, 0.3)'"
+                    :focus-border-color="'rgba(123, 139, 209, 1)'"
+                    :border-width="2"
+                    :is-box-shadow="true"
+                    style="width: 100%; height: 60px; margin-top: 15px;"
+                    @keyup.enter="add"
+                ></fv-text-box>
             </div>
             <div class="w-p-block">
-                <p class="w-title">{{ local('Item Labels') }}</p>
+                <p class="w-title">{{local('Item Labels')}}</p>
             </div>
-            <div class="w-p-row">
-                <fv-check-box v-model="item.check" v-for="(item, index) in colorList" :key="index"
-                    :border-color="item.color" :background="item.color" @click="chooseColor(index)"></fv-check-box>
+            <div
+                v-show="labels.length > 0"
+                class="w-p-block"
+                style="height: 120px; padding: 0px; overflow-x: auto;"
+            >
+                <fv-tag
+                    v-model="labels"
+                    :theme="theme"
+                    :isDel="true"
+                ></fv-tag>
             </div>
-            <div class="w-p-block">
-                <fv-text-box v-model="label" :placeholder="local('New item label (Press Enter)')" icon="Tag"
-                    :theme="theme" :border-color="currentColor" @keyup.enter="addLabel"></fv-text-box>
-            </div>
-            <div class="w-p-block" style="overflow-x: auto;">
-                <fv-tag v-model="labels" :theme="theme" :isDel="true"></fv-tag>
+            <div
+                class="label-text-box-block"
+                style="line-height: 2;"
+            >
+                <div
+                    v-for="(item, index) in colorList"
+                    class="label-text-item"
+                    :key="index"
+                >
+                    <p
+                        class="label-text-item-sample"
+                        :style="{background: item.color}"
+                    ></p>
+                    <fv-text-box
+                        v-model="item.content"
+                        :placeholder="local('New item label (Press Enter)')"
+                        icon="Tag"
+                        :theme="theme"
+                        :border-color="item.color"
+                        :focus-border-color="item.color"
+                        :is-box-shadow="true"
+                        underline
+                        style="margin: 5px 0px;"
+                        @keyup.enter="addLabel(item)"
+                    ></fv-text-box>
+                </div>
             </div>
         </template>
         <template v-slot:control>
-            <fv-button theme="dark" background="rgba(0, 153, 204, 1)" :disabled="name === '' || !cur_db" @click="add">
-                {{ local('Confirm') }}</fv-button>
-            <fv-button :theme="theme" @click="thisShow = false">{{ local('Cancel') }}</fv-button>
+            <fv-button
+                theme="dark"
+                background="rgba(0, 98, 158, 1)"
+                :disabled="name === ''"
+                @click="add"
+            >{{local('Confirm')}}</fv-button>
+            <fv-button
+                :theme="theme"
+                style="margin-left: 5px;"
+                @click="thisShow = false"
+            >{{local('Cancel')}}</fv-button>
         </template>
     </float-window-base>
 </template>
@@ -33,14 +83,16 @@
 <script>
 import floatWindowBase from "../window/floatWindowBase.vue";
 import { item } from "@/js/data_sample.js";
-import { mapMutations, mapState, mapGetters } from "vuex";
-import { ConflictBehavior } from "msgraphapi";
+import { mapState, mapGetters } from "vuex";
 
 export default {
     components: {
         floatWindowBase,
     },
     props: {
+        partitionId: {
+            default: "",
+        },
         show: {
             default: false,
         },
@@ -49,21 +101,20 @@ export default {
         return {
             thisShow: this.show,
             name: "",
-            label: "",
             labels: [],
             colorList: [
-                { name: "purple", color: "#958DF1", check: false },
-                { name: "red", color: "#F98181", check: false },
-                { name: "orange", color: "#FBBC88", check: false },
-                { name: "yellow", color: "#FAF594", check: false },
-                { name: "blue", color: "#70CFF8", check: false },
-                { name: "teal", color: "#94FADB", check: false },
-                { name: "green", color: "#B9F18D", check: false },
-                { name: "red", color: "#ffa8a8", check: false },
-                { name: "orange", color: "#ffc078", check: false },
-                { name: "green", color: "#8ce99a", check: false },
-                { name: "blue", color: "#74c0fc", check: false },
-                { name: "purple", color: "#b197fc", check: false },
+                { name: "purple", color: "#958DF1", check: false, content: "" },
+                { name: "red", color: "#F98181", check: false, content: "" },
+                { name: "orange", color: "#FBBC88", check: false, content: "" },
+                { name: "yellow", color: "#ffd747", check: false, content: "" },
+                { name: "blue", color: "#70CFF8", check: false, content: "" },
+                { name: "teal", color: "#53deae", check: false, content: "" },
+                { name: "green", color: "#ace887", check: false, content: "" },
+                { name: "red", color: "#ffa8a8", check: false, content: "" },
+                { name: "orange", color: "#ffc078", check: false, content: "" },
+                { name: "green", color: "#8ce99a", check: false, content: "" },
+                { name: "blue", color: "#74c0fc", check: false, content: "" },
+                { name: "pink", color: "#e28deb", check: false, content: "" },
             ],
         };
     },
@@ -79,85 +130,64 @@ export default {
     },
     computed: {
         ...mapState({
-            root: (state) => state.root,
-            data_index: (state) => state.data_index,
-            data_path: (state) => state.data_path,
-            items: (state) => state.data_structure.items,
-            groups: (state) => state.data_structure.groups,
-            partitions: (state) => state.data_structure.partitions,
-            c: (state) => state.pdfImporter.c,
-            theme: (state) => state.theme,
+            data_index: (state) => state.config.data_index,
+            data_path: (state) => state.config.data_path,
+            counter: (state) => state.pdfImporter.counter,
+            theme: (state) => state.config.theme,
         }),
-        ...mapGetters(["local", "cur_db"]),
-        v() {
-            return this;
-        },
-        currentColor() {
-            for (let item of this.colorList) {
-                if (item.check) return item.color;
-            }
-            return "rgba(25, 106, 167, 1)";
-        },
+        ...mapGetters(['local', 'currentDataPath']),
     },
+    mounted() {},
     methods: {
-        ...mapMutations({
-            reviseDS: "reviseDS",
-            revisePdfImporter: "revisePdfImporter",
-        }),
         async add() {
-            if (!this.cur_db || this.name === "") return;
+            if (this.name === "") return;
             let _item = JSON.parse(JSON.stringify(item));
             _item.id = this.$Guid();
             _item.name = this.name;
             _item.emoji = "📦";
             _item.labels = this.labels;
             _item.createDate = this.$SDate.DateToString(new Date());
-            this.items.push(_item);
-            this.reviseDS({
-                $index: this.data_index,
-                items: this.items,
-            });
-            this.copyToPartition(_item);
-            await this.root.clone().path(`root/items`).createListAsync({
-                name:_item.id,
-                conflict: ConflictBehavior.Fail
-            })
+            let res = await this.$auto.AcademicController.createItem(
+                this.currentDataPath,
+                _item
+            );
+            if (res.code !== 200) {
+                this.$barWarning(res.message, {
+                    status: "error",
+                });
+                return;
+            }
+            if (this.partitionId) {
+                let itemid = res.data.id;
+                res = await this.$auto.AcademicController.addItemsToPartition(
+                    this.currentDataPath,
+                    this.partitionId,
+                    [itemid]
+                );
+            }
+            if (res.code !== 200) {
+                this.$barWarning(res.message, {
+                    status: "error",
+                });
+                return;
+            }
+            this.$emit("finished");
             this.thisShow = false;
         },
-        copyToPartition(item) {
-            let id = this.$route.params.id;
-            if (id === undefined) return;
-            let t = [].concat(this.groups);
-            let partitions = [];
-            for (let i = 0; i < t.length; i++) {
-                if (t[i].groups) t = t.concat(t[i].groups);
-                if (t[i].partitions)
-                    partitions = partitions.concat(t[i].partitions);
-            }
-            partitions = partitions.concat(this.partitions);
-            for (let i = 0; i < partitions.length; i++) {
-                if (partitions[i].id === id) {
-                    partitions[i].items.push(item.id);
-                }
-            }
-            this.reviseDS({
-                $index: this.data_index,
-                groups: this.groups,
-                partitions: this.partitions,
-            });
-        },
-        addLabel() {
-            if (this.label === "") return;
+        addLabel(item) {
+            if (item.content === "") return;
             this.labels.push({
-                text: this.label,
-                background: this.currentColor,
+                text: item.content,
+                background: item.color,
             });
-            this.label = "";
+            item.content = "";
+            this.$set(this.colorList, this.colorList.indexOf(item), item);
         },
         chooseColor(index) {
             this.colorList.forEach((el, idx) => {
                 if (index !== idx) {
                     el.check = false;
+                    el.content = "";
                     this.$set(this.colorList, idx, el);
                 }
             });
@@ -167,4 +197,22 @@ export default {
 </script>
 
 <style lang="scss">
+.label-text-box-block {
+    width: 100%;
+    height: 500px;
+    overflow: auto;
+
+    .label-text-item {
+        @include Vcenter;
+
+        flex: 1;
+
+        .label-text-item-sample {
+            width: 25px;
+            height: 25px;
+            margin-right: 20px;
+            border-radius: 50%;
+        }
+    }
+}
 </style>

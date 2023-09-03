@@ -2,7 +2,7 @@
     <transition name="zoom-in-top">
         <div
             v-show="thisValue"
-            class="ikfb-rightMenu"
+            class="fabulous-rightMenu"
             :class="[{dark: theme === 'dark'}]"
             :style="{left: posX + 'px', top: posY + 'px', width: rightMenuWidth + 'px'}"
         >
@@ -19,28 +19,24 @@
 
 <script>
 export default {
-    name: "rightMenu",
+    name: 'rightMenu',
     props: {
         value: {
-            default: false,
-        },
-        posX: {
-            default: 0,
-        },
-        posY: {
-            default: 0,
+            default: false
         },
         rightMenuWidth: {
-            default: 200,
+            default: 200
         },
         theme: {
-            default: "light",
-        },
+            default: 'light'
+        }
     },
     data() {
         return {
             thisValue: this.value,
-            rightMenuHeight: 0,
+            posX: 0,
+            posY: 0,
+            rightMenuHeight: 0
         };
     },
     watch: {
@@ -48,38 +44,68 @@ export default {
             this.thisValue = val;
         },
         thisValue(val) {
-            this.$emit("input", val);
+            this.$emit('input', val);
             if (this.rightMenuHeight == 0) {
                 this.rightMenuHeight = this.$el.clientHeight;
-                this.$emit("update-height", this.rightMenuHeight);
+                this.$emit('update-height', this.rightMenuHeight);
             }
-        },
+        }
     },
     mounted() {
+        this.globalAppendInit();
         this.rightMenuClearInit();
     },
     methods: {
+        globalAppendInit() {
+            this.$nextTick(() => {
+                const body = document.querySelector('body');
+                if (body.append) {
+                    body.append(this.$el);
+                } else {
+                    body.appendChild(this.$el);
+                }
+            });
+        },
         rightMenuClearInit() {
-            window.addEventListener("click", (event) => {
+            window.addEventListener('click', (event) => {
                 let x = event.target;
                 if (x && x !== this.$el) this.thisValue = false;
             });
         },
-    },
+        rightClick(event, el) {
+            event.preventDefault();
+            this.thisValue = true;
+            let bounding = el.getBoundingClientRect();
+            let targetPos = {};
+            targetPos.x = event.x;
+            targetPos.y = event.y;
+            if (targetPos.x < bounding.left) targetPos.x = bounding.left;
+            if (targetPos.x + this.rightMenuWidth > bounding.right)
+                targetPos.x = bounding.right - this.rightMenuWidth;
+            if (targetPos.y < bounding.top) targetPos.y = bounding.top;
+            if (targetPos.y + this.rightMenuHeight > bounding.bottom)
+                targetPos.y = bounding.bottom - this.rightMenuHeight;
+            this.posX = targetPos.x;
+            this.posY = targetPos.y;
+        }
+    }
 };
 </script>
 
 <style lang="scss">
-.ikfb-rightMenu {
+.fabulous-rightMenu {
     position: fixed;
     top: 100%;
     width: 200px;
     height: auto;
     padding: 8px 0px;
-    background: rgba(239, 239, 239, 1);
-    border-radius: 3px;
+    background: rgba(255, 255, 255, 0.3);
+    border: rgba(36, 36, 36, 0.1) solid thin;
+    border-radius: 8px;
     box-sizing: border-box;
-    box-shadow: 0px 0px 0px rgba(0, 0, 0, 0.1), 0px 3px 10px rgba(0, 0, 0, 0.3);
+    box-shadow: 0px 0px 0px rgba(0, 0, 0, 0.1), 0px 3px 6px rgba(0, 0, 0, 0.1);
+    backdrop-filter: blur(25px);
+    -webkit-backdrop-filter: blur(25px);
     z-index: 3;
 
     div {
@@ -89,7 +115,6 @@ export default {
             width: calc(100% - 10px);
             margin-left: 5px;
             padding: 8px 10px;
-            background: rgba(239, 239, 239, 1);
             font-size: 13px;
             border-radius: 3px;
             box-sizing: border-box;
@@ -127,16 +152,15 @@ export default {
     }
 
     &.dark {
-        background: rgba(36, 36, 36, 1);
+        background: rgba(36, 36, 36, 0.6);
+        border: rgba(200, 200, 200, 0.1) solid thin;
         box-shadow: 0px 0px 0px rgba(36, 36, 36, 0.1),
-            0px 3px 10px rgba(36, 36, 36, 0.3);
+            0px 3px 6px rgba(36, 36, 36, 0.3);
 
         div {
             span {
-                background: rgba(36, 36, 36, 1);
-
                 &:hover {
-                    background: rgba(49, 49, 49, 1);
+                    background: rgba(36, 36, 36, 1);
                 }
 
                 p {
@@ -148,6 +172,12 @@ export default {
                 border-bottom: rgba(50, 49, 48, 1) solid thin;
             }
         }
+    }
+
+    .icon-img {
+        width: 15px;
+        height: auto;
+        user-select: none;
     }
 }
 

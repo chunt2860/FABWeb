@@ -12,8 +12,9 @@
                 :theme="theme"
                 :key="index"
                 :title="item.name"
-                :content="`${local('Create Time')}: ${item.createDate}`"
+                :content="`${local('Create Time')}: ${$date(item.createDate)}`"
                 :maxHeight="350"
+                :disabled-collapse="edit"
                 style="margin: 5px"
                 @contextmenu.native="rightClick($event, item)"
             >
@@ -45,6 +46,7 @@
                     <div class="custom-collapse-title">
                         <p
                             class="title-content h"
+                            @click="itemTitleClick($event, item)"
                             @dblclick="item.pdf ? $emit('open-file', `${item.id}/${item.pdf}.pdf`) : $emit('open-file', `${item.id}`)"
                         >{{ x.title }}</p>
                     </div>
@@ -69,7 +71,7 @@
                         :value="item.labels"
                         :theme="theme"
                         class="tag-block"
-                        style="max-width: 120px; overflow: auto;"
+                        style="max-width: 120px; overflow: overlay;"
                         @click.native="$emit('label-click', item)"
                     ></fv-tag>
                 </template>
@@ -81,6 +83,7 @@
             </fv-collapse>
             <fv-shimmer
                 v-if="loading"
+                :theme="theme"
                 style="position: relative; width: 100%; height: auto;"
             >
                 <div
@@ -112,12 +115,9 @@
                 </div>
             </fv-shimmer>
             <right-menu
-                v-model="show.rightMenu"
-                :theme="theme"
-                :posX="posX"
-                :posY="posY"
+                ref="rightMenu"
                 :rightMenuWidth="rightMenuWidth"
-                @update-height="rightMenuHeight = $event"
+                :theme="theme"
             >
                 <slot name="menu">
                 </slot>
@@ -127,81 +127,58 @@
 </template>
 
 <script>
-import { mapGetters } from "vuex";
-import emojiCallout from "@/components/general/callout/emojiCallout.vue";
-import rightMenu from "@/components/general/rightMenu.vue";
+import { mapGetters } from 'vuex';
+import emojiCallout from '@/components/general/callout/emojiCallout.vue';
+import rightMenu from '@/components/general/rightMenu.vue';
 
 export default {
-    name: "mainList",
+    name: 'mainList',
     components: {
         emojiCallout,
-        rightMenu,
+        rightMenu
     },
     props: {
         value: {
             type: Array,
-            default: () => [],
-        },
-        filter: {
-            default: () => {
-                return {
-                    key: "any",
-                    value: "",
-                };
-            },
+            default: () => []
         },
         edit: {
-            default: false,
-        },
-        desc: {
-            default: 1,
-        },
-        sortKey: {
-            // name, title, publisher, createDate, year
-            default: "",
+            default: false
         },
         rightMenuWidth: {
-            default: 200,
+            default: 200
         },
         theme: {
-            default: "light",
-        },
+            default: 'light'
+        }
     },
     data() {
         return {
             thisValue: this.value,
-            posX: 0,
-            posY: 0,
-            rightMenuHeight: 0,
-            loading: false,
-            show: {
-                rightMenu: false,
-            },
+            loading: false
         };
     },
     watch: {
-        value() {
-            this.thisValue = this.value;
-            this.valueInit();
+        value: {
+            deep: true,
+            handler() {
+                this.thisValue = this.value;
+                this.valueInit();
+            }
         },
         thisValue() {
-            this.$emit("input", this.thisValue);
+            this.$emit('input', this.thisValue);
         },
-        sortKey() {
-            this.sort();
-        },
-        desc() {
-            this.sort();
-        },
-        filter() {
-            this.filterValue();
-        },
-        "filter.value"() {
-            this.filterValue();
-        },
+        edit() {
+            for (let i = 0; i < this.thisValue.length; i++) {
+                let t = this.thisValue[i];
+                t.choosen = false;
+                this.$set(this.thisValue, i, t);
+            }
+        }
     },
     computed: {
-        ...mapGetters(["local"]),
+        ...mapGetters(['local', 'currentDataPath']),
         currentChoosen() {
             let result = [];
             for (let i = 0; i < this.thisValue.length; i++) {
@@ -231,7 +208,7 @@ export default {
                 if (this.thisValue[i].show) result.push(this.thisValue[i]);
             }
             return result;
-        },
+        }
     },
     mounted() {
         this.valueInit();
@@ -245,143 +222,24 @@ export default {
                 val[i].show = true;
             }
             this.thisValue = val;
-            this.filterValue();
         },
-        filterValue() {
-            let filter = this.filter;
-            if (typeof this.filter == "string")
-                filter = {
-                    key: "any",
-                    value: this.filter,
-                };
-            if (filter.key == undefined || filter.value == undefined) {
-                console.warn(this.filter, "Invalid filter.");
-                return 0;
-            }
-            if (filter.key == "any") {
-                for (let i = 0; i < this.thisValue.length; i++) {
-                    let status = false;
-                    let item = this.thisValue[i];
-                    for (let it in this.thisValue[i]) {
-                        if (typeof item[it] != "string") continue;
-                        if (
-                            item[it]
-                                .toLowerCase()
-                                .indexOf(filter.value.toLowerCase()) > -1
-                        ) {
-                            status = true;
-                            break;
-                        }
-                    }
-                    item.show = status;
-                    this.$set(this.thisValue, i, item);
-                }
-            } else {
-                for (let i = 0; i < this.thisValue.length; i++) {
-                    let item = this.thisValue[i];
-                    let status =
-                        this.thisValue[i][this.filter.key]
-                            .toLowerCase()
-                            .indexOf(filter.value.toLowerCase()) > -1;
-                    item.show = status;
-                    this.$set(this.thisValue, i, item);
-                }
-            }
-            this.$emit("change-value", this.thisValue);
-        },
-        rightClick(event, item) {
-            event.preventDefault();
-            this.show.rightMenu = true;
-            let bounding = this.$el.getBoundingClientRect();
-            let targetPos = {};
-            targetPos.x = event.x;
-            targetPos.y = event.y;
-            if (targetPos.x < bounding.left) targetPos.x = bounding.left;
-            if (targetPos.x + this.rightMenuWidth > bounding.right)
-                targetPos.x = bounding.right - this.rightMenuWidth;
-            if (targetPos.y < bounding.top) targetPos.y = bounding.top;
-            if (targetPos.y + this.rightMenuHeight > bounding.bottom)
-                targetPos.y = bounding.bottom - this.rightMenuHeight;
-            this.posX = targetPos.x;
-            this.posY = targetPos.y;
-
-            this.$emit("rightclick", item);
+        rightClick($event, item) {
+            $event.preventDefault();
+            this.$emit('rightclick', item);
+            this.$refs.rightMenu.rightClick($event, this.$el);
         },
         itemChooseClick(item) {
             let index = this.thisValue.indexOf(item);
             let t = item;
             t.choosen = !t.choosen;
             this.$set(this.thisValue, index, t);
-            this.$emit("change-value", this.thisValue);
-            this.$emit("choose-items", this.currentChoosen);
+            this.$emit('change-value', this.thisValue);
+            this.$emit('choose-items', this.currentChoosen);
         },
-        sort() {
-            let numKey = ["year"];
-            let strKey1 = ["name"];
-            let strKey2 = ["title", "publisher"];
-            let timeKey1 = ["createDate"];
-            if (numKey.find((it) => it == this.sortKey))
-                this.thisValue.sort((a, b) => {
-                    if (!a.metadata || !a.metadata[this.sortKey])
-                        return this.desc * -1;
-                    if (!b.metadata || !b.metadata[this.sortKey])
-                        return this.desc * 1;
-                    return (
-                        this.desc *
-                        this.sortNum(
-                            a.metadata[this.sortKey],
-                            b.metadata[this.sortKey]
-                        )
-                    );
-                });
-            else if (strKey1.find((it) => it == this.sortKey))
-                this.thisValue.sort((a, b) => {
-                    if (!a[this.sortKey]) return this.desc * -1;
-                    if (!b[this.sortKey]) return this.desc * 1;
-                    return (
-                        this.desc *
-                        this.sortName(a[this.sortKey], b[this.sortKey])
-                    );
-                });
-            else if (strKey2.find((it) => it == this.sortKey))
-                this.thisValue.sort((a, b) => {
-                    if (!a.metadata || !a.metadata[this.sortKey])
-                        return this.desc * -1;
-                    if (!b.metadata || !b.metadata[this.sortKey])
-                        return this.desc * 1;
-                    return (
-                        this.desc *
-                        this.sortName(
-                            a.metadata[this.sortKey],
-                            b.metadata[this.sortKey]
-                        )
-                    );
-                });
-            else if (timeKey1.find((it) => it == this.sortKey))
-                this.thisValue.sort((a, b) => {
-                    if (!a[this.sortKey]) return this.desc * -1;
-                    if (!b[this.sortKey]) return this.desc * 1;
-                    return (
-                        this.desc *
-                        this.sortTime(a[this.sortKey], b[this.sortKey])
-                    );
-                });
-        },
-        sortNum(item1, item2) {
-            return parseFloat(item1) < parseFloat(item2) ? 1 : -1;
-        },
-        sortName(item1, item2) {
-            if (!item1) return -1;
-            if (!item2) return 1;
-            return item1.localeCompare(item2);
-        },
-        sortTime(item1, item2) {
-            return this.$SDate.Compare(
-                this.$SDate.Parse(item1),
-                this.$SDate.Parse(item2)
-            );
-        },
-    },
+        itemTitleClick($event, item) {
+            if (this.edit) this.itemChooseClick(item);
+        }
+    }
 };
 </script>
 
@@ -391,11 +249,6 @@ export default {
     width: 100%;
     height: 100%;
     overflow: auto;
-
-    p
-    {
-        @include nowrap;
-    }
 
     .icon-block {
         @include HcenterVcenter;

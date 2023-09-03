@@ -1,16 +1,28 @@
 <template>
     <float-window-base
         v-model="thisShow"
-        :title="local('Init New Data Source')"
+        :title="local('Init Data Source')"
         :theme="theme"
     >
         <template v-slot:content>
-            <div class="w-p-block">
+            <div
+                class="w-p-block"
+                @keyup.enter="initDs"
+            >
                 <p class="w-title">{{local('Data Source Name')}}</p>
+                <p class="w-info">{{local('Path')}}: {{thisDataPath}}</p>
                 <fv-text-box
                     v-model="name"
                     :placeholder="local('Input data source name...')"
                     :theme="theme"
+                    :font-size="18"
+                    underline
+                    :border-radius="6"
+                    :border-color="'rgba(123, 139, 209, 0.3)'"
+                    :focus-border-color="'rgba(123, 139, 209, 1)'"
+                    :border-width="2"
+                    :is-box-shadow="true"
+                    style="width: 100%; height: 50px; margin-top: 15px;"
                     @keyup.enter="initDs"
                 ></fv-text-box>
             </div>
@@ -18,12 +30,13 @@
         <template v-slot:control>
             <fv-button
                 theme="dark"
-                background="rgba(0, 153, 204, 1)"
-                :disabled="thisDataIndex < 0 || name === ''"
+                background="rgba(0, 98, 158, 1)"
+                :disabled="db_index < 0 || name === ''"
                 @click="initDs"
             >{{local('Confirm')}}</fv-button>
             <fv-button
                 :theme="theme"
+                style="margin-left: 5px;"
                 @click="thisShow = false"
             >{{local('Cancel')}}</fv-button>
         </template>
@@ -31,26 +44,25 @@
 </template>
 
 <script>
-import floatWindowBase from "../window/floatWindowBase.vue";
-import { mapMutations, mapState, mapGetters } from "vuex";
-import { data_structure } from "@/js/data_sample.js";
+import floatWindowBase from '../window/floatWindowBase.vue';
+import { mapState, mapGetters } from 'vuex';
 
 export default {
     components: {
-        floatWindowBase,
+        floatWindowBase
     },
     props: {
         show: {
-            default: false,
+            default: false
         },
-        thisDataIndex: {
-            default: null,
-        },
+        db_index: {
+            default: null
+        }
     },
     data() {
         return {
             thisShow: this.show,
-            name: "",
+            name: ''
         };
     },
     watch: {
@@ -58,43 +70,50 @@ export default {
             this.thisShow = val;
         },
         thisShow(val) {
-            this.$emit("update:show", val);
-            this.name = "";
-        },
+            this.$emit('update:show', val);
+            this.name = '';
+        }
     },
     computed: {
         ...mapState({
-            data_path: (state) => state.data_path,
-            language: (state) => state.language,
-            dbList: (state) => state.dbList,
-            theme: (state) => state.theme,
+            data_path: (state) => state.config.data_path,
+            language: (state) => state.config.language,
+            theme: (state) => state.config.theme
         }),
-        ...mapGetters(["local"]),
+        ...mapGetters(['local', 'currentDataPath']),
+        thisDataPath() {
+            if (this.data_path.length == 0) return null;
+            if (this.data_path[this.db_index])
+                return this.data_path[this.db_index].path;
+            let dataPathItem = this.data_path.find(
+                (item) => item.path === this.db_index
+            );
+            if (dataPathItem) return dataPathItem.path;
+            return null;
+        },
         v() {
             return this;
-        },
+        }
     },
     methods: {
-        ...mapMutations({
-            reviseDS: "reviseDS",
-        }),
         initDs() {
-            if (this.thisDataIndex < 0 || this.name === "") return;
-            if (!this.data_path[this.thisDataIndex]) return;
-            this.init_ds(this.$Guid(), this.name);
-            this.thisShow = false;
-        },
-        init_ds(id, name) {
-            let ds = JSON.parse(JSON.stringify(data_structure));
-            ds.id = id;
-            ds.name = name;
-            ds.createDate = this.$SDate.DateToString(new Date());
-            this.reviseDS({
-                $index: this.thisDataIndex,
-                ...ds
+            if (!this.db_index || this.name === '') return;
+            if (!this.thisDataPath) return;
+            this.$local_api.ConfigController.initDataSource(
+                this.thisDataPath,
+                this.name
+            ).then((res) => {
+                if (res.status !== 'success') {
+                    this.$barWarning(res.message, {
+                        status: 'warning'
+                    });
+                } else {
+                    this.$emit('finished');
+                    this.thisShow = false;
+                }
             });
-        },
-    },
+        }
+    }
 };
 </script>
 
