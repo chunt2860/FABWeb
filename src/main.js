@@ -67,7 +67,7 @@ new Vue({
         if (isdev) {
             Vue.prototype.$server = "http://59.77.134.155:5080";
         } else {
-            Vue.prototype.$server = `/api`;
+            Vue.prototype.$server = `http://59.77.134.155:5080`;
         }
     }
 }).$mount('#app')

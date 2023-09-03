@@ -7,7 +7,7 @@ const isdev = (process.env.NODE_ENV === "development")
 if (isdev) {
     ax.defaults.baseURL = "http://59.77.134.155:5080";
 } else {
-    ax.defaults.baseURL = "/api"
+    ax.defaults.baseURL = "http://59.77.134.155:5080"
 }
 
 ax.interceptors.request.use(config => {
