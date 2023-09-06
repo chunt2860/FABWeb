@@ -60,7 +60,6 @@
                     :Go="Go"
                 ></ds-tree-view>
                 <local-tree-view
-                    v-if="false"
                     v-show="expand && activeSystemMode !== 'ds' && computeDisplay('notebook') && notebookMode === 0"
                     v-model="localPath"
                     :Go="Go"
