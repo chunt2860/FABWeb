@@ -356,8 +356,8 @@
 import { mapMutations, mapState, mapGetters, mapActions } from 'vuex';
 import userProfile from './profile/userProfile.vue';
 import loginWindow from './login';
-import initDs from '@/components/settings/initDS.vue';
-import addDs from '@/components/settings/addDS.vue';
+import initDs from '@/components/settings/initDs.vue';
+import addDs from '@/components/settings/addDs.vue';
 import dataPathItem from '@/components/settings/dataPathItem.vue';
 
 import OneDrive from '@/assets/settings/OneDrive.svg';

@@ -1,14 +1,10 @@
 version: '3.7'
 
 services:
-  web:
+  web-1:
     build: .
     ports:
-      - "60082：80"
+      - "60081:80"
     restart: always
-    depends_on:
-      - redis
-  redis:
-    image: redis:7.0
-    pull_policy: missing
-    restart: always
+    
+  
