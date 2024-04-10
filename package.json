@@ -6,7 +6,7 @@
         "serve": "vue-cli-service serve",
         "build": "vue-cli-service build",
         "lint": "vue-cli-service lint",
-        "api:local": "api-cli get http://59.77.134.155:5080/v3/api-docs -d ./src/api/remote"
+        "api": "api-cli get https://fb.creatorsn.com/api/v3/api-docs -d ./src/api/"
     },
     "license": "MIT",
     "dependencies": {

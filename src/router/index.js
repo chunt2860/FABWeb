@@ -3,6 +3,7 @@ import VueRouter from "vue-router";
 
 import tool from "./tools";
 
+
 Vue.use(VueRouter);
 
 const AsyncLoad = tool.AsyncLoad;
@@ -12,6 +13,11 @@ const routes = [
         path: "/",
         name: "Home",
         component: () => AsyncLoad(import("@/views/home"))
+    },
+    {
+        path: "/login",
+        name: "loginWindow",
+        component: () => AsyncLoad(import("@/views/settings/login/loginWindow.vue"))
     },
     {
         path: "/partitions/:id",
