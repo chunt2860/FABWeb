@@ -4,7 +4,7 @@
         :class="{dark: theme == 'dark'}"
     >
     
-    <div v-if="$route.path !== '/login'">
+    <div v-if="$route.path !== '/login'&$route.path !== '/register'&$route.path !== '/forgot'">
         <navigation-view></navigation-view>
     </div>
         

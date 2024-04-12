@@ -20,6 +20,16 @@ const routes = [
         component: () => AsyncLoad(import("@/views/settings/login/login.vue"))
     },
     {
+        path: "/register",
+        name: "register",
+        component: () => AsyncLoad(import("@/views/settings/login/apply.vue"))
+    },
+    {
+        path: "/forgot",
+        name: "forgot",
+        component: () => AsyncLoad(import("@/views/settings/login/forgot.vue"))
+    },
+    {
         path: "/partitions/:id",
         name: "Home",
         component: () => AsyncLoad(import("@/views/home"))

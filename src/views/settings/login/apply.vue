@@ -69,7 +69,7 @@
         </div>
         <div
             class="s3"
-            @click="$emit('switch-block', 'login')"
+            @click="$Go(`/login`)"
         >
             <p>{{local('Already have an account? Log in')}}</p>
         </div>

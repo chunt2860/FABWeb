@@ -99,7 +99,7 @@
                 <div class="s2">
                     <p
                         class="to-apply"
-                        @click="$emit('switch-block', 'forgot')"
+                        @click="$Go(`/forgot`)"
                     >{{local('Forget Password')}}</p>
                     <p
                         class="to-apply"
@@ -107,7 +107,7 @@
                     >·</p>
                     <p
                         class="to-apply"
-                        @click="$emit('switch-block', 'apply')"
+                        @click="$Go(`/register`)"
                     >{{local('No account yet?')}}</p>
                 </div>
             </div>
