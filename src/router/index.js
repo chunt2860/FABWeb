@@ -16,8 +16,8 @@ const routes = [
     },
     {
         path: "/login",
-        name: "loginWindow",
-        component: () => AsyncLoad(import("@/views/settings/login/loginWindow.vue"))
+        name: "login",
+        component: () => AsyncLoad(import("@/views/settings/login/login.vue"))
     },
     {
         path: "/partitions/:id",

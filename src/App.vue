@@ -3,7 +3,11 @@
         id="app"
         :class="{dark: theme == 'dark'}"
     >
+    
+    <div v-if="$route.path !== '/login'">
         <navigation-view></navigation-view>
+    </div>
+        
         <div class="addition-container">
             <div class="global-container">
                 <keep-alive include="Home,Templates,Settings">
