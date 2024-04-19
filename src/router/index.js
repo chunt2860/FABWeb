@@ -2,7 +2,7 @@ import Vue from "vue";
 import VueRouter from "vue-router";
 
 import tool from "./tools";
-
+import store from "@/store";
 
 Vue.use(VueRouter);
 
@@ -67,4 +67,15 @@ const router = new VueRouter({
     routes
 });
 
+router.beforeEach((to, from, next) => {
+    // 检查用户是否已经登录
+    const isLogin = store.state.User.info.id !== null;
+    
+    if (!isLogin && to.path !== '/login') {
+        
+        next('/login');
+    } else {
+        next(); 
+    }
+});
 export default router;

@@ -31,7 +31,7 @@
                     background="whitesmoke"
                     :border-radius="6"
                     :theme="theme"
-                    style="width: 100%; max-width: 375px; height: 40px; margin-top: 45px; flex-shrink: 0;"
+                    class="text-box-style"
                     @keyup="handleEnter"
                 ></fv-text-box>
                 <fv-text-box
@@ -44,7 +44,7 @@
                     background="whitesmoke"
                     :border-radius="6"
                     :theme="theme"
-                    style="width: 100%; max-width: 375px; height: 40px; margin-top: 15px; flex-shrink: 0;"
+                    class="text-box-style"
                     @keyup="handleEnter"
                 ></fv-text-box>
                 <fv-button
@@ -346,6 +346,7 @@ export default {
         @include a-link;
 
         margin-top: 35px;
+        margin-bottom: 35px;
         font-size: 12px;
     }
 }
@@ -387,6 +388,20 @@ export default {
                 padding-top: 20px;
             }
         }
+    }
+}
+.text-box-style{
+    width: 100%; 
+    max-width: 375px; 
+    height: 40px; 
+    margin-top: 15px; 
+    flex-shrink: 0;
+}
+@media (max-width:360px) {
+    .text-box-style{
+        margin-left: 10%;
+        margin-right: 10%;
+        width: 80%;
     }
 }
 </style>
