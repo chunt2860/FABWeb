@@ -68,14 +68,11 @@ const router = new VueRouter({
 });
 
 router.beforeEach((to, from, next) => {
-    // 检查用户是否已经登录
     const isLogin = store.state.User.info.id !== null;
-    
-    if (!isLogin && to.path !== '/login') {
-        
+    if (!isLogin && to.path !== '/login' && to.path !== '/forgot' && to.path !== '/register') {
         next('/login');
     } else {
-        next(); 
+        next();
     }
 });
 export default router;

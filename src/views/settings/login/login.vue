@@ -184,7 +184,7 @@ export default {
                         });
                         await this.getInfo();
                         this.getAvatar();
-                        this.$Go(`/settings`);
+                        this.$Go(`/`);
                     }
                     this.lock.login = true;
                 })
