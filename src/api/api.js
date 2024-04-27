@@ -2716,6 +2716,55 @@ export class NotebookController {
   }
  
   /**
+  * @summary 上传笔记图片
+  * @param {String} [pathuri] 
+  * @param {String} [id] 
+  * @param {string} [string] 
+  * @param {CancelTokenSource} [cancelSource] Axios Cancel Source 对象，可以取消该请求
+  * @param {Function} [uploadProgress] 上传回调函数
+  * @param {Function} [downloadProgress] 下载回调函数
+  */
+  static async updateImage(pathuri,id,string,cancelSource,uploadProgress,downloadProgress){
+    return await new Promise((resolve,reject)=>{
+      let responseType = "json";
+      let options = {
+        method:'post',
+        url:'/sources/'+pathuri+'/documents/updateImage',
+        data:string,
+        params:{id},
+        headers:{
+          "Content-Type":"application/json"
+        },
+        onUploadProgress:uploadProgress,
+        onDownloadProgress:downloadProgress
+      }
+      // support wechat mini program
+      if (cancelSource!=undefined){
+        options.cancelToken = cancelSource.token
+      }
+      if (responseType != "json"){
+        options.responseType = responseType;
+      }
+      axios(options)
+      .then(res=>{
+        if (res.config.responseType=="blob"){
+          resolve(new Blob([res.data],{
+            type: res.headers["content-type"].split(";")[0]
+          }))
+        }else{
+          resolve(res.data);
+          return res.data
+        }
+      }).catch(err=>{
+        if (err.response.data)
+          reject(err.response.data)
+        else
+          reject(err.response);
+      })
+    })
+  }
+ 
+  /**
   * @summary 创建指定的目录
   * @param {String} [pathuri] 
   * @param {String} [filepath] 
@@ -2910,6 +2959,54 @@ export class NotebookController {
   }
  
   /**
+  * @summary 翻译本文
+  * @param {Number} [pathtranslationengine] 
+  * @param {undefined} [translationdto] 
+  * @param {CancelTokenSource} [cancelSource] Axios Cancel Source 对象，可以取消该请求
+  * @param {Function} [uploadProgress] 上传回调函数
+  * @param {Function} [downloadProgress] 下载回调函数
+  */
+  static async translation(pathtranslationengine,translationdto,cancelSource,uploadProgress,downloadProgress){
+    return await new Promise((resolve,reject)=>{
+      let responseType = "json";
+      let options = {
+        method:'post',
+        url:'/sources/'+pathtranslationengine+'/documents/translation',
+        data:{},
+        params:{translationdto},
+        headers:{
+          "Content-Type":""
+        },
+        onUploadProgress:uploadProgress,
+        onDownloadProgress:downloadProgress
+      }
+      // support wechat mini program
+      if (cancelSource!=undefined){
+        options.cancelToken = cancelSource.token
+      }
+      if (responseType != "json"){
+        options.responseType = responseType;
+      }
+      axios(options)
+      .then(res=>{
+        if (res.config.responseType=="blob"){
+          resolve(new Blob([res.data],{
+            type: res.headers["content-type"].split(";")[0]
+          }))
+        }else{
+          resolve(res.data);
+          return res.data
+        }
+      }).catch(err=>{
+        if (err.response.data)
+          reject(err.response.data)
+        else
+          reject(err.response);
+      })
+    })
+  }
+ 
+  /**
   * @summary 判断指定路径是否存在,路径以/间隔,格式例如: {GUID}/{GUID}/{GUID}
   * @param {String} [pathuri] 
   * @param {String} [filepath] 
@@ -2925,6 +3022,52 @@ export class NotebookController {
         url:'/sources/'+pathuri+'/path',
         data:{},
         params:{filepath},
+        headers:{
+          "Content-Type":""
+        },
+        onUploadProgress:uploadProgress,
+        onDownloadProgress:downloadProgress
+      }
+      // support wechat mini program
+      if (cancelSource!=undefined){
+        options.cancelToken = cancelSource.token
+      }
+      if (responseType != "json"){
+        options.responseType = responseType;
+      }
+      axios(options)
+      .then(res=>{
+        if (res.config.responseType=="blob"){
+          resolve(new Blob([res.data],{
+            type: res.headers["content-type"].split(";")[0]
+          }))
+        }else{
+          resolve(res.data);
+          return res.data
+        }
+      }).catch(err=>{
+        if (err.response.data)
+          reject(err.response.data)
+        else
+          reject(err.response);
+      })
+    })
+  }
+ 
+  /**
+  * @summary 查询翻译引擎
+  * @param {CancelTokenSource} [cancelSource] Axios Cancel Source 对象，可以取消该请求
+  * @param {Function} [uploadProgress] 上传回调函数
+  * @param {Function} [downloadProgress] 下载回调函数
+  */
+  static async selectTranslationEngine(cancelSource,uploadProgress,downloadProgress){
+    return await new Promise((resolve,reject)=>{
+      let responseType = "json";
+      let options = {
+        method:'get',
+        url:'/sources/translationEngine',
+        data:{},
+        params:{},
         headers:{
           "Content-Type":""
         },
@@ -3293,6 +3436,14 @@ NotebookController.removeDocument.fullPath=`${axios.defaults.baseURL}/sources/{u
 */
 NotebookController.removeDocument.path=`/sources/{uri}/documents`
 /**
+* @description updateImage url链接，包含baseURL
+*/
+NotebookController.updateImage.fullPath=`${axios.defaults.baseURL}/sources/{uri}/documents/updateImage`
+/**
+* @description updateImage url链接，不包含baseURL
+*/
+NotebookController.updateImage.path=`/sources/{uri}/documents/updateImage`
+/**
 * @description createDirectory url链接，包含baseURL
 */
 NotebookController.createDirectory.fullPath=`${axios.defaults.baseURL}/sources/{uri}/directories`
@@ -3325,6 +3476,14 @@ NotebookController.copyDirectory.fullPath=`${axios.defaults.baseURL}/sources/{ur
 */
 NotebookController.copyDirectory.path=`/sources/{uri}/directories/copy`
 /**
+* @description translation url链接，包含baseURL
+*/
+NotebookController.translation.fullPath=`${axios.defaults.baseURL}/sources/{translationEngine}/documents/translation`
+/**
+* @description translation url链接，不包含baseURL
+*/
+NotebookController.translation.path=`/sources/{translationEngine}/documents/translation`
+/**
 * @description existsPath url链接，包含baseURL
 */
 NotebookController.existsPath.fullPath=`${axios.defaults.baseURL}/sources/{uri}/path`
@@ -3332,6 +3491,14 @@ NotebookController.existsPath.fullPath=`${axios.defaults.baseURL}/sources/{uri}/
 * @description existsPath url链接，不包含baseURL
 */
 NotebookController.existsPath.path=`/sources/{uri}/path`
+/**
+* @description selectTranslationEngine url链接，包含baseURL
+*/
+NotebookController.selectTranslationEngine.fullPath=`${axios.defaults.baseURL}/sources/translationEngine`
+/**
+* @description selectTranslationEngine url链接，不包含baseURL
+*/
+NotebookController.selectTranslationEngine.path=`/sources/translationEngine`
 /**
 * @description transferIdsToNames url链接，包含baseURL
 */

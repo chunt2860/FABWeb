@@ -927,6 +927,37 @@ export class PartitionCreateDTO {
     emoji=undefined
     
 }
+export class TranslationDTO {
+  
+    /**
+     *
+     * @param {String} query 
+     * @param {String} from 
+     * @param {String} to 
+     */ 
+    constructor(query = undefined,from = undefined,to = undefined){
+        this.query = query
+        this.from = from
+        this.to = to
+    }
+       
+    /**
+     * 
+     * @type {String}
+     */
+    query=undefined   
+    /**
+     * 
+     * @type {String}
+     */
+    from=undefined   
+    /**
+     * 
+     * @type {String}
+     */
+    to=undefined
+    
+}
 export class ConfigCreateOrUpdateDTO {
   
     /**
