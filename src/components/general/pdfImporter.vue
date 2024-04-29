@@ -118,7 +118,7 @@ export default {
                     let file = this.$refs.input.files[i];
                     let _metadata = await this.getTitleMetadata(file);
                     this.item.metadata = _metadata;
-                    this.item.pdf = await this.copyPdf(file.path);
+                    this.item.pdf = await this.copyPdf(file);
                     await this.saveMetadata(_metadata);
                 }
                 this.lock = true;
@@ -169,7 +169,7 @@ export default {
                         });
                         return;
                     }
-                    await this.copyPdf(file.path, res.data.id);
+                    await this.copyPdf(file, res.data.id);
                     await this.saveMetadata(_metadata, res.data.id);
                     await this.copyToPartition(res.data.id);
                 }
@@ -222,7 +222,7 @@ export default {
                     this.lock = true;
                     return;
                 }
-                await this.copyPdf(file.path, res.data.id);
+                await this.copyPdf(file, res.data.id);
                 await this.saveMetadata(_metadata, res.data.id);
                 await this.copyToPartition(res.data.id);
             }
@@ -254,6 +254,7 @@ export default {
         },
         async copyPdf(objURL, id = null) {
             if (!id) id = this.item.id;
+            objURL = URL.createObjectURL(objURL);
             let blob = await fetch(objURL).then((r) => r.blob());
             let pdfid = id;
             await this.$auto.AcademicController.updateItemPDF(
