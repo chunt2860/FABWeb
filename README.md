@@ -43,3 +43,16 @@ docker compose up -d --build
 ```
 
 Then you can visit the website at `http://<host>:<port>`.
+
+### Changes of FABWeb vs Fabulous
+
+1. navigationView
+
+- **location**: `src/components/general/navigationView/index.vue`
+
+- **operation**:
+    `Remove`
+    ```javascript
+    <local-tree-view
+                        v-if="false"
+    ```
