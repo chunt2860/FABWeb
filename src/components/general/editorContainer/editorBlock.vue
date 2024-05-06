@@ -133,7 +133,7 @@
                     <fv-button
                         :theme="theme"
                         :foreground="theme === 'dark' ? 'rgba(200, 200, 200, 1)' : ''"
-                        :background="theme === 'dark' ? 'rgba(36, 36, 36, 1)' : ''"
+                        :background="theme === 'dark' ? 'rgba(36, 36, 36, 1)' : 'rgba(255, 255, 255, 1)'"
                         :class="[x.defaultClass]"
                         :isBoxShadow="true"
                         :title="local('Import Markdown')"
@@ -150,7 +150,7 @@
                     <fv-button
                         :theme="theme"
                         :foreground="'rgba(147, 79, 125, 1)'"
-                        :background="theme === 'dark' ? 'rgba(36, 36, 36, 1)' : ''"
+                        :background="theme === 'dark' ? 'rgba(36, 36, 36, 1)' : 'rgba(255, 255, 255, 1)'"
                         :class="[x.defaultClass]"
                         :isBoxShadow="true"
                         :title="local('Export Markdown')"
@@ -169,7 +169,7 @@
                     <fv-button
                         :theme="theme"
                         :foreground="'rgba(147, 79, 125, 1)'"
-                        :background="theme === 'dark' ? 'rgba(36, 36, 36, 1)' : ''"
+                        :background="theme === 'dark' ? 'rgba(36, 36, 36, 1)' : 'rgba(255, 255, 255, 1)'"
                         :class="[x.defaultClass]"
                         :isBoxShadow="true"
                         :title="local('Save As')"
@@ -207,20 +207,29 @@
                 style="flex: 1;"
                 @click="show.bottomControl ^= true"
             ></i>
-            <fv-slider
+            <div
                 v-show="show.bottomControl"
-                v-model="fontSize"
-                :mininum="12"
-                :maxinum="72"
-                icon="RadioBullet"
-                color="rgba(87, 156, 193, 1)"
-                :showLabel="true"
-                style="width: 150px; margin-right: 15px;"
+                class="right-block"
             >
-                <template slot-scope="prop">
-                    <p style="margin: 5px;">{{prop.value}}px</p>
-                </template>
-            </fv-slider>
+                <i
+                    class="ms-Icon ms-Icon--FontSize"
+                    style="margin: 0px 5px;"
+                ></i>
+                <fv-slider
+                    v-model="fontSize"
+                    :theme="theme"
+                    :mininum="12"
+                    :maxinum="72"
+                    color="rgba(145, 145, 235, 1)"
+                    :background="theme === 'dark' ? 'rgba(20, 20, 20, 0.6)' : 'rgba(255, 255, 255, 1)'"
+                    :showLabel="true"
+                    style="width: 150px; margin-right: 15px;"
+                >
+                    <template slot-scope="prop">
+                        <p style="margin: 5px;">{{prop.value}}px</p>
+                    </template>
+                </fv-slider>
+            </div>
         </div>
         <template-preview
             :title="local('History Preview')"
@@ -305,7 +314,8 @@ export default {
                 },
                 mentionClickCallback: (item) => {
                     if (item.type === 'item') {
-                        this.openFile(item.id, item.pdf);
+                        console.log(item);
+                        if (item.pdf) this.openFile(item.id, item.pdf);
                     } else if (item.type === 'page') {
                         if (this.unsave) {
                             this.$infoBox(
@@ -330,7 +340,7 @@ export default {
                         } else this.openEditor(item.parent, item._page);
                     }
                 },
-                headerForeground: 'rgba(0, 120, 212, 1)'
+                headerForeground: () => 'rgba(0, 120, 212, 1)'
             },
             customExtensions: [pdfNote],
             img: {
@@ -458,12 +468,17 @@ export default {
         timerInit() {
             clearInterval(this.timer.autoSave);
             this.timer.autoSave = setInterval(() => {
-                if (this.show_editor && this.auto_save && this.unsave) {
+                if (
+                    this.show_editor &&
+                    this.auto_save &&
+                    this.unsave &&
+                    !this.show.diff
+                ) {
                     let editor = this.getEditor();
                     editor.save();
                     this.toggleUnsave(false);
                 }
-            }, 300);
+            }, 3000);
         },
         diffContent() {
             let nodeDirtyAttrRemove = (obj) => {
@@ -734,7 +749,8 @@ export default {
             this.$refs.editor_nav.getEditorNavList();
         },
         editorContentChange() {
-            this.diffContent();
+            this.timerInit(); // 重新初始化自动保存
+            this.diffContent(); // 比较内容是否有变化
             this.$refs.editor_nav.getEditorNavList();
         },
         openEditor(item, page) {
@@ -757,12 +773,36 @@ export default {
             });
         },
         openFile(itemid, fileid, type = 'pdf') {
-            this.$auto.AcademicController.openItemFile(
-                this.currentDataPath,
-                itemid,
-                fileid,
-                type
-            );
+            if (this.isRemote) {
+                if (type !== 'pdf') return;
+                if (
+                    !fileid &&
+                    itemid.indexOf('/') > -1 &&
+                    itemid.indexOf('.') > -1
+                ) {
+                    fileid = itemid.split('/')[1];
+                    fileid = fileid.split('.')[0];
+                    itemid = itemid.split('/')[0];
+                }
+                this.$api.AcademicController.openItemFile(
+                    this.currentDataPath,
+                    itemid,
+                    fileid
+                ).then((res) => {
+                    window.open(
+                        this.$server + res.data,
+                        this.item.name,
+                        'width=1200,height=640'
+                    );
+                });
+            } else {
+                this.$local_api.AcademicController.openItemFile(
+                    this.currentDataPath,
+                    itemid,
+                    fileid,
+                    type
+                );
+            }
         },
         async mentionList(value) {
             let result = [];
@@ -905,7 +945,7 @@ export default {
                 if (event.deltaY > 0 && this.fontSize > 12) {
                     this.fontSize -= 1;
                 } else if (this.fontSize < 72) {
-                    this.fontSize += 1;
+                    this.fontSize = this.fontSize / 1 + 1;
                 }
             }
         }
@@ -999,7 +1039,7 @@ export default {
         position: absolute;
         width: 100%;
         height: 100%;
-        background: rgba(250, 250, 250, 0.8);
+        background: rgba(255, 255, 255, 1);
         overflow: hidden;
         z-index: 1;
 
@@ -1064,6 +1104,10 @@ export default {
             &:active {
                 background: rgba(200, 200, 200, 0.3);
             }
+        }
+
+        .right-block {
+            @include Vcenter;
         }
     }
 

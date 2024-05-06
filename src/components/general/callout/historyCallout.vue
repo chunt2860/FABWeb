@@ -2,7 +2,7 @@
     <callout-base
         :show.sync="show"
         :mobileMode="mobileMode"
-        :title="'Emoji'"
+        :title="local('History')"
         :theme="theme"
         :popperClass="['fabulous-history-callout']"
     >
@@ -246,6 +246,10 @@ export default {
         flex-direction: column;
         align-items: center;
         overflow: auto;
+
+        .list-view-container {
+            @include narrow-scroll-bar;
+        }
 
         .list-view-custom-content {
             position: relative;

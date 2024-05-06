@@ -151,7 +151,7 @@
                     <fv-button
                         :theme="theme"
                         :foreground="theme === 'dark' ? 'rgba(200, 200, 200, 1)' : ''"
-                        :background="theme === 'dark' ? 'rgba(36, 36, 36, 1)' : ''"
+                        :background="theme === 'dark' ? 'rgba(36, 36, 36, 1)' : 'rgba(255, 255, 255, 1)'"
                         :class="[x.defaultClass]"
                         :isBoxShadow="true"
                         :title="local('Import Markdown')"
@@ -170,7 +170,7 @@
                     <fv-button
                         :theme="theme"
                         :foreground="'rgba(147, 79, 125, 1)'"
-                        :background="theme === 'dark' ? 'rgba(36, 36, 36, 1)' : ''"
+                        :background="theme === 'dark' ? 'rgba(36, 36, 36, 1)' : 'rgba(255, 255, 255, 1)'"
                         :class="[x.defaultClass]"
                         :isBoxShadow="true"
                         :title="local('Save As')"
@@ -232,7 +232,7 @@
                             :border-radius="0"
                             underline
                             :readonly="readonly != false"
-                            @keydown="toggleUnsave(true)"
+                            @keydown="toggleUnsave(true); titleBlockTab($event)"
                             style="height: 60px;"
                             :style="{width: '100%', 'max-width': expandContent ? '99999px' : '900px'}"
                         ></fv-text-box>
@@ -271,20 +271,30 @@
                 style="flex: 1;"
                 @click="show.bottomControl ^= true"
             ></i>
-            <fv-slider
+            <div
                 v-show="show.bottomControl"
-                v-model="fontSize"
-                :mininum="12"
-                :maxinum="72"
-                icon="RadioBullet"
-                color="rgba(87, 156, 193, 1)"
-                :showLabel="true"
-                style="width: 150px; margin-right: 15px;"
+                class="right-block"
             >
-                <template slot-scope="prop">
-                    <p style="margin: 5px;">{{prop.value}}px</p>
-                </template>
-            </fv-slider>
+                <i
+                    class="ms-Icon ms-Icon--FontSize"
+                    style="margin: 0px 5px;"
+                ></i>
+                <fv-slider
+                    v-show="show.bottomControl"
+                    v-model="fontSize"
+                    :theme="theme"
+                    :mininum="12"
+                    :maxinum="72"
+                    color="rgba(145, 145, 235, 1)"
+                    :background="theme === 'dark' ? 'rgba(20, 20, 20, 0.6)' : 'rgba(255, 255, 255, 1)'"
+                    :showLabel="true"
+                    style="width: 150px; margin-right: 15px;"
+                >
+                    <template slot-scope="prop">
+                        <p style="margin: 5px;">{{prop.value}}px</p>
+                    </template>
+                </fv-slider>
+            </div>
         </div>
         <save-options
             :show.sync="show.saveOptions"
@@ -494,10 +504,10 @@ export default {
         timerInit() {
             clearInterval(this.timer.autoSave);
             this.timer.autoSave = setInterval(() => {
-                if (this.auto_save && this.unsave) {
+                if (this.auto_save && this.unsave && !this.show.diff) {
                     this.$refs.editor.save();
                 }
-            }, 300);
+            }, 3000);
         },
         diffContent() {
             let nodeDirtyAttrRemove = (obj) => {
@@ -670,7 +680,8 @@ export default {
             }, 300);
         },
         editorContentChange() {
-            this.diffContent();
+            this.timerInit(); // 重新初始化自动保存定时器
+            this.diffContent(); // 比较内容是否有变化
             this.$refs.editor_nav.getEditorNavList();
         },
         editorSetContentChange() {
@@ -755,8 +766,16 @@ export default {
                 if (event.deltaY > 0 && this.fontSize > 12) {
                     this.fontSize -= 1;
                 } else if (this.fontSize < 72) {
-                    this.fontSize += 1;
+                    this.fontSize = this.fontSize / 1 + 1;
                 }
+            }
+        },
+        titleBlockTab(event) {
+            if (event.keyCode === 9) {
+                event.preventDefault();
+                event.stopPropagation();
+                this.$refs.editor.editor.commands.focus();
+                this.$refs.editor.editor.commands.setTextSelection(0);
             }
         },
         upgrade() {
@@ -853,7 +872,7 @@ export default {
     position: relative;
     width: 100%;
     height: 100%;
-    background: rgba(245, 245, 245, 1);
+    background: rgba(255, 255, 255, 1);
     display: flex;
     flex-direction: column;
     overflow: hidden;
@@ -1041,6 +1060,10 @@ export default {
             &:active {
                 background: rgba(200, 200, 200, 0.3);
             }
+        }
+
+        .right-block {
+            @include Vcenter;
         }
     }
 
