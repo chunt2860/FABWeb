@@ -6,7 +6,7 @@
         "serve": "vue-cli-service serve",
         "build": "vue-cli-service build",
         "lint": "vue-cli-service lint",
-        "api": "api-cli get http://59.77.134.42:5085/v3/api-docs -d ./src/api/"
+        "api": "api-cli get http://59.77.134.42:5084/v3/api-docs -d ./src/api/"
     },
     "license": "MIT",
     "dependencies": {
