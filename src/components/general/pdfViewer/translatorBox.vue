@@ -19,10 +19,18 @@
             style="margin-top: 50px;"
             @keyup="ctrlEnterTranslate"
         ></fv-text-field>
-        <select name="name" id="translate" @change='handleChange' v-model='choice' style='width: 50%'>
+        <!-- <select name="name" id="translate" @change='handleChange' v-model='choice' style='width: 50%'>
             <option value="baidu" > 百度 </option>
             <option value="youdao"> 有道 </option>
-        </select>
+        </select> -->
+        <fv-Combobox
+            id="translate"
+            v-model="choice"
+            :options="options"
+            placeholder="百度"
+            style="width: 50%;"
+        ></fv-Combobox>
+       
         <fv-text-field
             v-show="translateObj.selection !== '' && translateObj.text !== ''"
             v-model="translateObj.text"
@@ -95,12 +103,19 @@ export default {
     },
     data() {
         return {
-            choice:"youdao",
+            choice:'baidu',
             selection:"",
             thisValue: this.value,
+            options: [
+                { value: 'baidu', text: '百度' },
+                { value: 'youdao', text: '有道' },
+            ]
         };
     },
     watch: {
+        choice(){
+            this.$emit("send-choice",this.choice)
+        },
         value() {
             this.thisValue = this.value;
         },
@@ -112,9 +127,9 @@ export default {
         this.globalAppendInit();
     },
     methods: {
-        handleChange(){
-            this.$emit("send-choice",this.choice)
-        },
+        // handleChange(){
+        //     this.$emit("send-choice",this.choice)
+        // },
         globalAppendInit() {
             this.$nextTick(() => {
                 const body = document.querySelector("body");

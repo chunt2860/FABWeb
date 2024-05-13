@@ -157,7 +157,7 @@ export default {
     },
     data() {
         return {
-            choice:"youdao",
+            choice:"baidu",
             currentPage: 1,
             currentPageStr: '1',
             totalPages: 0,
@@ -218,6 +218,9 @@ export default {
         };
     },
     watch: {
+        choice(){
+            this.toTranslate();
+        },
         item() {
             this.$nextTick(() => {
                 this.totalPages = 0;
@@ -346,8 +349,14 @@ export default {
         ...mapMutations({
             reviseEditor: 'reviseEditor'
         }),
-        changChoice(choice){
-            this.choice=choice
+        // 使用fv-Combobox组件后，choice是object?
+        changChoice(choice){  
+            if (typeof choice === 'object' && choice !== null) {
+                this.choice=choice.value
+            }
+            else{
+                this.choice=choice
+            }
         },
         timerInit() {
             // PDFViewer 定位刷新器 10ms (PDFViewer position refresher 10ms)

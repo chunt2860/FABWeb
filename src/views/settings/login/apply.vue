@@ -122,7 +122,8 @@ export default {
                 .then((res) => {
                     if (res.code === 200) {
                         this.Apply.Lock = false;
-                        this.$emit('switch-block', 'login');
+                        // this.$emit('switch-block', 'login');
+                        this.$Go(`/login`);
                     }
                 })
                 .catch((res) => {

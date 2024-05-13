@@ -3580,6 +3580,7 @@ export class ConfigController {
   */
   static async getConfig(cancelSource,uploadProgress,downloadProgress){
     return await new Promise((resolve,reject)=>{
+      // 远程配置获取 //
       let responseType = "json";
       let options = {
         method:'get',

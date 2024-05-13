@@ -67,25 +67,23 @@ const config = {
             let id = context.rootState.User.info.id;
             if (id) {
                 await Vue.prototype.$api.ConfigController.getConfig(id).then((res) => {
-                    // if (res.code === 200) { 
-                        if (res.code===400) context.dispatch('initRemoteConfig', _config);
-                        else{
-                            let target = res.data;
-                            for (let key in _config) {
-                                if (!Object.prototype.hasOwnProperty.call(target, key))
-                                    // 要用undefined比较好, 因为其他情况也有可能false.
-                                    continue;
-                                else if (key === 'data_path') {
-                                    for (let i = 0; i < target[key].length; i++) {
-                                        if (!target[key][i].path) target[key][i].path = target[key][i].id;
-                                    }
-                                    _config[key] = _config[key].concat(target[key]);
+                    if (res.code === 200) {
+                        let target = res.data;
+                        if (!target.configId) context.dispatch('initRemoteConfig', _config);
+                        for (let key in _config) {
+                            if (!Object.prototype.hasOwnProperty.call(target, key))
+                                // 要用undefined比较好, 因为其他情况也有可能false.
+                                continue;
+                            else if (key === 'data_path') {
+                                for (let i = 0; i < target[key].length; i++) {
+                                    if (!target[key][i].path) target[key][i].path = target[key][i].id;
                                 }
-                                else
-                                    _config[key] = target[key];
+                                _config[key] = _config[key].concat(target[key]);
                             }
-                        }   
-                    // }
+                            else
+                                _config[key] = target[key];
+                        }
+                    }
                 }
                 ).catch((err) => {
                     console.log(err);
@@ -114,7 +112,9 @@ const config = {
                 Vue.set(state, key, obj[key]);
             }
             if (!state.isConfigMounted) return;
-            await Vue.prototype.$local_api.ConfigController.createOrUpdateConfig(state);
+            await Vue.prototype.$local_api.ConfigController.createOrUpdateConfig(state).catch(err => {
+                console.warn(err);
+            });
             let id = rootState.User.info.id;
             if (id) {
                 let remoteTarget = Object.assign({}, state);
